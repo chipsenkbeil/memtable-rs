@@ -1,0 +1,17 @@
+[package]
+name = "memtable"
+version = "0.1.0"
+edition = "2018"
+
+[features]
+serde-1 = ["serde", "serde_with"]
+
+[dependencies]
+paste = "1.0.5"
+
+csv = { version = "1.1", optional = true }
+serde = { version = "1.0.115", features = ["derive"], optional = true }
+serde_with = { version = "1.9.1", optional = true }
+
+[dev-dependencies]
+tempfile = "3.2"
