@@ -3,8 +3,6 @@
 [![Build Status][build_img]][build_lnk]
 [![Crates.io][crates_img]][crates_lnk]
 [![Docs.rs][doc_img]][doc_lnk]
-[![entity: rustc 1.49+]][Rust 1.49]
-[![entity_macros: rustc 1.49+]][Rust 1.49]
 
 ## Getting Started
 
