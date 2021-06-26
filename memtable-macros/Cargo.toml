@@ -26,3 +26,8 @@ voca_rs = "1.13.0"
 memtable-core = { version = "=0.1.0", path = "../memtable-core" }
 rustversion = "1.0.4"
 trybuild = "1.0.35"
+
+[package.metadata.docs.rs]
+all-features = true
+features = ["docs"]
+rustdoc-args = ["--cfg", "feature=\"docs\""]

@@ -1,8 +1,9 @@
-use super::Table;
+use crate::Table;
 use ::csv as csv_lib;
 use std::{fs::File, io, path::Path};
 
 /// Represents ability to load data from a CSV
+#[cfg_attr(feature = "docs", doc(cfg(csv)))]
 pub trait FromCsv {
     type Output;
 
@@ -43,6 +44,7 @@ impl<T: Table<Data = String>> FromCsv for T {
 }
 
 /// Represents ability to save data to a CSV
+#[cfg_attr(feature = "docs", doc(cfg(csv)))]
 pub trait ToCsv {
     /// Writes a table to some instance of the [`io::Write`] trait
     fn to_csv<W: io::Write>(&self, writer: W) -> io::Result<()>;

@@ -150,7 +150,7 @@ fn make_table_impl(
             pub fn column_by_name(
                 &self,
                 name: &::std::primitive::str,
-            ) -> ::std::option::Option<#root::Column<
+            ) -> ::std::option::Option<#root::iter::Column<
                 self::#table_data_name #ty_generics,
                 #root::MemTable<self::#table_data_name #ty_generics>,
             >> {
@@ -168,7 +168,7 @@ fn make_table_impl(
             pub fn into_column_by_name(
                 self,
                 name: &::std::primitive::str,
-            ) -> ::std::option::Option<#root::IntoColumn<
+            ) -> ::std::option::Option<#root::iter::IntoColumn<
                 self::#table_data_name #ty_generics,
                 #root::MemTable<self::#table_data_name #ty_generics>,
             >> {

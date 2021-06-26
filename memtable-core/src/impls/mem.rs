@@ -1,4 +1,4 @@
-use super::*;
+use crate::{iter::*, Position, Table};
 use std::{
     collections::HashMap,
     iter::FromIterator,

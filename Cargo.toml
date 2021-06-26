@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2018"
 
 [features]
+cell = ["memtable-core/cell"]
 csv = ["memtable-core/csv"]
 macros = ["memtable-macros"]
 serde = ["memtable-core/serde-1"]
@@ -17,3 +18,8 @@ members = [
     "memtable-core",
     "memtable-macros",
 ]
+
+[package.metadata.docs.rs]
+all-features = true
+features = ["docs"]
+rustdoc-args = ["--cfg", "feature=\"docs\""]

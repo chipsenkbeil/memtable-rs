@@ -1,17 +1,22 @@
-mod cell;
-pub use cell::*;
+#![cfg_attr(feature = "docs", feature(doc_cfg))]
 
-#[cfg(feature = "csv")]
-mod csv;
+/// Contains extensions to the library based on extra features
+pub mod exts;
 
-mod iter;
-pub use iter::*;
+/// Contains iterators and associated traits for traversing portions of tables
+pub mod iter;
 
-mod mem;
-pub use mem::*;
+mod impls;
+pub use impls::*;
 
 mod position;
-pub use position::*;
+
+#[doc(inline)]
+pub use position::Position;
+
+/// Contains relevant top-level traits, structs, and more to make use of
+/// this library
+pub mod prelude;
 
 /// Represents an abstract table of data
 pub trait Table: Default {
@@ -25,7 +30,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.row_cnt(), 0);
     /// ```
@@ -33,7 +38,7 @@ pub trait Table: Default {
     /// When has several rows:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -49,7 +54,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.col_cnt(), 0);
     /// ```
@@ -57,7 +62,7 @@ pub trait Table: Default {
     /// When has several columns:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
@@ -87,7 +92,7 @@ pub trait Table: Default {
     /// When retrieving a cell that doesn't exist:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(table.get_cell(0, 3).is_none());
@@ -96,7 +101,7 @@ pub trait Table: Default {
     /// When retrieving a cell that does exist:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert_eq!(table.get_cell(0, 2), Some(&3));
@@ -110,7 +115,7 @@ pub trait Table: Default {
     /// When retrieving a cell that doesn't exist:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(table.get_mut_cell(0, 3).is_none());
@@ -119,7 +124,7 @@ pub trait Table: Default {
     /// When retrieving a cell that does exist:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
@@ -136,7 +141,7 @@ pub trait Table: Default {
     /// When replacing a cell that doesn't exist:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
@@ -147,7 +152,7 @@ pub trait Table: Default {
     /// When replacing a cell that does exist:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
@@ -164,7 +169,7 @@ pub trait Table: Default {
     /// ### Examples
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
@@ -180,7 +185,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.len(), 0);
     /// ```
@@ -188,7 +193,7 @@ pub trait Table: Default {
     /// When has several rows & columns:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -207,7 +212,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert!(table.is_empty());
     /// ```
@@ -215,7 +220,7 @@ pub trait Table: Default {
     /// When has several rows & columns:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -233,7 +238,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.rows().len(), 0);
     /// ```
@@ -241,7 +246,7 @@ pub trait Table: Default {
     /// When has several rows:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -252,8 +257,8 @@ pub trait Table: Default {
     /// assert!(rows.next().is_none());
     /// ```
     ///
-    fn rows(&self) -> Rows<Self::Data, Self> {
-        Rows::new(self)
+    fn rows(&self) -> iter::Rows<Self::Data, Self> {
+        iter::Rows::new(self)
     }
 
     /// Returns an iterator of refs through a specific row in the table
@@ -263,7 +268,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.row(0).len(), 0);
     /// ```
@@ -271,7 +276,7 @@ pub trait Table: Default {
     /// When has several rows:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -283,8 +288,8 @@ pub trait Table: Default {
     /// assert_eq!(cells.next(), None);
     /// ```
     ///
-    fn row(&self, idx: usize) -> Row<Self::Data, Self> {
-        Row::new(self, idx)
+    fn row(&self, idx: usize) -> iter::Row<Self::Data, Self> {
+        iter::Row::new(self, idx)
     }
 
     /// Consumes the table and returns an iterator through a specific row in the table
@@ -294,7 +299,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.into_row(0).len(), 0);
     /// ```
@@ -302,7 +307,7 @@ pub trait Table: Default {
     /// When has several rows:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -314,8 +319,8 @@ pub trait Table: Default {
     /// assert_eq!(cells.next(), None);
     /// ```
     ///
-    fn into_row(self, idx: usize) -> IntoRow<Self::Data, Self> {
-        IntoRow::new(self, idx)
+    fn into_row(self, idx: usize) -> iter::IntoRow<Self::Data, Self> {
+        iter::IntoRow::new(self, idx)
     }
 
     /// Returns an iterator of refs through all columns in the table
@@ -325,7 +330,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.columns().len(), 0);
     /// ```
@@ -333,7 +338,7 @@ pub trait Table: Default {
     /// When has several columns:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
@@ -344,8 +349,8 @@ pub trait Table: Default {
     /// assert!(columns.next().is_none());
     /// ```
     ///
-    fn columns(&self) -> Columns<Self::Data, Self> {
-        Columns::new(self)
+    fn columns(&self) -> iter::Columns<Self::Data, Self> {
+        iter::Columns::new(self)
     }
 
     /// Returns an iterator of refs through a specific column in the table
@@ -355,7 +360,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.column(0).len(), 0);
     /// ```
@@ -363,7 +368,7 @@ pub trait Table: Default {
     /// When has several columns:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
@@ -375,8 +380,8 @@ pub trait Table: Default {
     /// assert_eq!(cells.next(), None);
     /// ```
     ///
-    fn column(&self, idx: usize) -> Column<Self::Data, Self> {
-        Column::new(self, idx)
+    fn column(&self, idx: usize) -> iter::Column<Self::Data, Self> {
+        iter::Column::new(self, idx)
     }
 
     /// Consumes the table and returns an iterator through a specific column in the table
@@ -386,7 +391,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.into_column(0).len(), 0);
     /// ```
@@ -394,7 +399,7 @@ pub trait Table: Default {
     /// When has several columns:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
@@ -406,8 +411,8 @@ pub trait Table: Default {
     /// assert_eq!(cells.next(), None);
     /// ```
     ///
-    fn into_column(self, idx: usize) -> IntoColumn<Self::Data, Self> {
-        IntoColumn::new(self, idx)
+    fn into_column(self, idx: usize) -> iter::IntoColumn<Self::Data, Self> {
+        iter::IntoColumn::new(self, idx)
     }
 
     /// Returns an iterator of refs through all cells in the table, starting
@@ -419,7 +424,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.cells().len(), 0);
     /// ```
@@ -427,7 +432,7 @@ pub trait Table: Default {
     /// When has several rows & columns:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -442,8 +447,8 @@ pub trait Table: Default {
     /// assert_eq!(cells.next(), None);
     /// ```
     ///
-    fn cells(&self) -> Cells<Self::Data, Self> {
-        Cells::new(self)
+    fn cells(&self) -> iter::Cells<Self::Data, Self> {
+        iter::Cells::new(self)
     }
 
     /// Consumes the table and returns an iterator through all cells in the
@@ -455,7 +460,7 @@ pub trait Table: Default {
     /// When empty:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let table = MemTable::<usize>::new();
     /// assert_eq!(table.into_cells().len(), 0);
     /// ```
@@ -463,7 +468,7 @@ pub trait Table: Default {
     /// When has several rows & columns:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -478,8 +483,8 @@ pub trait Table: Default {
     /// assert_eq!(cells.next(), None);
     /// ```
     ///
-    fn into_cells(self) -> IntoCells<Self::Data, Self> {
-        IntoCells::new(self)
+    fn into_cells(self) -> iter::IntoCells<Self::Data, Self> {
+        iter::IntoCells::new(self)
     }
 
     /// Returns whether or not a cell exists at the specified row & column. Note
@@ -492,7 +497,7 @@ pub trait Table: Default {
     /// When has checking for a cell that doesn't exist:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(!table.has_cell(0, 3));
@@ -501,7 +506,7 @@ pub trait Table: Default {
     /// When has checking for a cell that does exist:
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(table.has_cell(0, 2));
@@ -516,7 +521,7 @@ pub trait Table: Default {
     /// ### Examples
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -566,7 +571,7 @@ pub trait Table: Default {
     /// ### Examples
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -594,7 +599,7 @@ pub trait Table: Default {
     /// ### Examples
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -614,7 +619,7 @@ pub trait Table: Default {
     /// let mut row = table.remove_row(0);
     /// assert!(row.next().is_none());
     /// ```
-    fn remove_row(&mut self, row: usize) -> IntoRow<Self::Data, Self> {
+    fn remove_row(&mut self, row: usize) -> iter::IntoRow<Self::Data, Self> {
         // We will be storing the row into a temporary table that we then
         // convert into the iterator
         let mut tmp = Self::default();
@@ -652,7 +657,7 @@ pub trait Table: Default {
     /// ### Examples
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
@@ -672,7 +677,7 @@ pub trait Table: Default {
     /// let mut row = table.pop_row();
     /// assert!(row.next().is_none());
     /// ```
-    fn pop_row(&mut self) -> IntoRow<Self::Data, Self> {
+    fn pop_row(&mut self) -> iter::IntoRow<Self::Data, Self> {
         let max_rows = self.row_cnt();
         self.remove_row(if max_rows > 0 { max_rows - 1 } else { 0 })
     }
@@ -683,7 +688,7 @@ pub trait Table: Default {
     /// ### Examples
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
@@ -733,7 +738,7 @@ pub trait Table: Default {
     /// ### Examples
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
@@ -761,7 +766,7 @@ pub trait Table: Default {
     /// ### Examples
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
@@ -781,7 +786,7 @@ pub trait Table: Default {
     /// let mut column = table.remove_column(0);
     /// assert!(column.next().is_none());
     /// ```
-    fn remove_column(&mut self, col: usize) -> IntoColumn<Self::Data, Self> {
+    fn remove_column(&mut self, col: usize) -> iter::IntoColumn<Self::Data, Self> {
         // We will be storing the column into a temporary table that we then
         // convert into the iterator
         let mut tmp = Self::default();
@@ -819,7 +824,7 @@ pub trait Table: Default {
     /// ### Examples
     ///
     /// ```
-    /// # use memtable_core::{MemTable, Table};
+    /// # use memtable_core::prelude::*;
     /// let mut table = MemTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
@@ -839,7 +844,7 @@ pub trait Table: Default {
     /// let mut column = table.pop_column();
     /// assert!(column.next().is_none());
     /// ```
-    fn pop_column(&mut self) -> IntoColumn<Self::Data, Self> {
+    fn pop_column(&mut self) -> iter::IntoColumn<Self::Data, Self> {
         let max_cols = self.col_cnt();
         self.remove_column(if max_cols > 0 { max_cols - 1 } else { 0 })
     }
@@ -848,6 +853,7 @@ pub trait Table: Default {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::prelude::*;
 
     // NOTE: For simplicity, we use our one concrete implementor of the table
     //       trait as our test table
