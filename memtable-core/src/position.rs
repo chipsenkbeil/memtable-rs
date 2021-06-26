@@ -33,8 +33,7 @@ impl Ord for Position {
     /// ### Examples
     ///
     /// ```
-    /// use memtable::Position;
-    ///
+    /// # use memtable_core::Position;
     /// // Row is first used for comparisons
     /// assert!(Position { row: 0, col: 1 } < Position { row: 1, col: 0 });
     /// assert!(Position { row: 1, col: 0 } > Position { row: 0, col: 1 });

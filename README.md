@@ -39,6 +39,34 @@ for column in table.columns() {
 // 6
 ```
 
+If you'd like typed tables, you can generate a table for some data structure
+using a derive macro from the `macros` features:
+
+```rust
+use memtable::Table;
+
+#[derive(Table)]
+struct User {
+    name: String,
+    age: u8,
+}
+
+// Produces a table with typed columns based on above fields
+let mut table = UserTable::new();
+
+// Instances of the above struct can be pushed to the table as individual rows
+table.push(User { name: "Fred Flintstone".to_string(), age: 51 });
+
+// You can also push a tuple of data
+table.push_row(("Wilma Flintstone".to_string(), 47));
+
+// Retrieving data comes in the form of an iterator over a data wrapper
+// called UserTableData
+let row: Vec<UserTableData> = table.row(0).collect();
+assert_eq!(row[0], "Fred Flintstone");
+assert_eq!(row[1], 51);
+```
+
 See [crate documentation][doc_link] for more examples.
 
 ### Features
