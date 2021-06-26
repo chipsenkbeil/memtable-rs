@@ -1,4 +1,4 @@
-use darling::FromDeriveInput;
+use darling::{util::PathList, FromDeriveInput};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_quote, Data, DeriveInput, Generics, Ident, ItemEnum, ItemImpl, Path, Visibility};
@@ -30,13 +30,19 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
         .map(|x| format_ident!("{}", x))
         .unwrap_or_else(|| format_ident!("{}Table", &table.ident));
     let table_data_name = table
-        .data_name
+        .data_attr
         .as_ref()
+        .and_then(|x| x.name.as_ref())
         .map(|x| format_ident!("{}", x))
         .unwrap_or_else(|| format_ident!("{}TableData", &table.ident));
     let columns = &table.data.as_ref().take_struct().unwrap().fields;
-    let (item_enum, item_enum_impl) =
-        make_table_data_enum(vis, &table_data_name, &table.generics, columns);
+    let (item_enum, item_enum_impl) = make_table_data_enum(
+        vis,
+        &table_data_name,
+        &table.generics,
+        table.data_attr.as_ref().and_then(|x| x.derive.as_ref()),
+        columns,
+    );
 
     let common_traits = make_common_traits(
         &root,
@@ -60,8 +66,14 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
         columns,
     );
 
+    let derive_attr = table
+        .derive
+        .filter(|list| !list.is_empty())
+        .map(|list| quote!(#[derive(#(#list),*)]));
+
     quote! {
         #[automatically_derived]
+        #derive_attr
         #vis struct #table_name #ty_generics(
             #root::Table<self::#table_data_name #ty_generics>
         ) #where_clause;
@@ -86,6 +98,7 @@ fn make_table_impl(
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let bug_msg = utils::bug_str();
 
+    let column_name = utils::make_column_names(columns, ToString::to_string);
     let variant = utils::make_variant_idents(columns);
     let variant_ty = utils::make_variant_types(columns);
     let snake_case_variant = utils::make_snake_idents(columns);
@@ -106,9 +119,9 @@ fn make_table_impl(
         .iter()
         .map(|name| format_ident!("get_mut_{}", name))
         .collect();
-    let remove_cell: Vec<Ident> = snake_case_variant
+    let replace_cell: Vec<Ident> = snake_case_variant
         .iter()
-        .map(|name| format_ident!("remove_{}", name))
+        .map(|name| format_ident!("replace_{}", name))
         .collect();
     let column: Vec<Ident> = snake_case_variant
         .iter()
@@ -127,8 +140,8 @@ fn make_table_impl(
             }
 
             /// Returns the numbers of the columns associated with this type of table
-            pub fn column_names(&self) -> &[&'static ::std::primitive::str] {
-                &[#(::std::stringify!(#variant)),*]
+            pub const fn column_names() -> &'static [&'static ::std::primitive::str] {
+                &[#(#column_name),*]
             }
 
             /// Retrieves a column by its name
@@ -138,8 +151,7 @@ fn make_table_impl(
             ) -> ::std::option::Option<#root::Column<self::#table_data_name #ty_generics>> {
                 match name {
                     #(
-                        ::std::stringify!(#variant) =>
-                            ::std::option::Option::Some(self.0.column(#idx)),
+                        #column_name => ::std::option::Option::Some(self.0.column(#idx)),
                     )*
                     _ => ::std::option::Option::None,
                 }
@@ -152,8 +164,7 @@ fn make_table_impl(
             ) -> ::std::option::Option<#root::IntoColumn<self::#table_data_name #ty_generics>> {
                 match name {
                     #(
-                        ::std::stringify!(#variant) =>
-                            ::std::option::Option::Some(self.0.into_column(#idx)),
+                        #column_name => ::std::option::Option::Some(self.0.into_column(#idx)),
                     )*
                     _ => ::std::option::Option::None,
                 }
@@ -161,31 +172,39 @@ fn make_table_impl(
 
             /// Iterates through each row of the table, returning a tuple of references
             /// to the individual fields
-            pub fn typed_rows(&self) -> impl ::std::iter::Iterator<Item = (#(&#variant_ty),*)> {
+            pub fn rows(&self) -> impl ::std::iter::Iterator<Item = (#(&#variant_ty),*)> {
+                // NOTE: The expect(...) should never happen as we should have
+                //       all of the rows available in the described range
                 ::std::iter::Iterator::map(
                     0..self.0.row_cnt(),
-                    move |idx| self.typed_row(idx),
+                    move |idx| self.row(idx).expect(#bug_msg),
                 )
             }
 
             /// Returns a tuple containing refs to row's data
-            pub fn typed_row(&self, row: ::std::primitive::usize) -> (#(&#variant_ty),*) {
+            pub fn row(&self, row: ::std::primitive::usize) -> ::std::option::Option<(#(&#variant_ty),*)> {
                 // NOTE: Because we don't allow access to the underlying table
                 //       at the level where the cell enum can be changed to
                 //       another type, this should NEVER fail. We want to rely
                 //       on that guarantee as it would be considered corrupt
                 //       if the data changed types underneath.
-                (#(
-                    self.#get_cell(row).expect(#bug_msg)
-                ),*)
+                if row < self.0.row_cnt() {
+                    ::std::option::Option::Some(
+                        (#(
+                            self.#get_cell(row).expect(#bug_msg)
+                        ),*)
+                    )
+                } else {
+                    ::std::option::Option::None
+                }
             }
 
             /// Inserts a new row into the table at the given position, shifting down
             /// all rows after it
-            pub fn insert_row<RowData: ::std::convert::Into<#name #ty_generics>>(
+            pub fn insert_row<__RowData: ::std::convert::Into<#name #ty_generics>>(
                 &mut self,
                 row: ::std::primitive::usize,
-                data: RowData,
+                data: __RowData,
             ) {
                 let data = data.into();
                 self.0.insert_row(row, ::std::vec![
@@ -194,9 +213,9 @@ fn make_table_impl(
             }
 
             /// Pushes a row to the end of the table
-            pub fn push_row<RowData: ::std::convert::Into<#name #ty_generics>>(
+            pub fn push_row<__RowData: ::std::convert::Into<#name #ty_generics>>(
                 &mut self,
-                data: RowData,
+                data: __RowData,
             ) {
                 self.insert_row(self.0.row_cnt(), data)
             }
@@ -248,11 +267,22 @@ fn make_table_impl(
                     self.0.get_mut_cell(row, #idx).and_then(self::#table_data_name::#as_mut_variant)
                 }
 
-                pub fn #remove_cell(
+                /// Swaps the current cell value with the provided one, doing nothing
+                /// if there is no cell at the specified row for the explicit column
+                pub fn #replace_cell<__Value: ::std::convert::Into<#variant_ty>>(
                     &mut self,
                     row: ::std::primitive::usize,
+                    value: __Value,
                 ) -> ::std::option::Option<#variant_ty> {
-                    self.0.remove_cell(row, #idx).and_then(self::#table_data_name::#into_variant)
+                    if row < self.0.row_cnt() {
+                        self.0.insert_cell(
+                            row,
+                            #idx,
+                            self::#table_data_name::#variant(value.into()),
+                        ).and_then(self::#table_data_name::#into_variant)
+                    } else {
+                        ::std::option::Option::None
+                    }
                 }
 
                 pub fn #column(&self) -> impl ::std::iter::Iterator<Item = &#variant_ty> {
@@ -335,9 +365,23 @@ fn make_common_traits(
             fn try_from(
                 table: #root::Table<self::#data_name #ty_generics>,
             ) -> ::std::result::Result<Self, Self::Error> {
-                #(
-                    for cell in table.column(#idx) {
-                        if !cell.#is_ty() {
+                for row in 0..table.row_cnt() {
+                    #(
+                        let cell = table.get_cell(row, #idx);
+
+                        if cell.is_none() {
+                            return ::std::result::Result::Err(
+                                ::std::concat!(
+                                    "Cell in column ",
+                                    ::std::stringify!(#idx),
+                                    "/",
+                                    ::std::stringify!(#variant),
+                                    " is missing",
+                                )
+                            );
+                        }
+
+                        if !cell.unwrap().#is_ty() {
                             return ::std::result::Result::Err(
                                 ::std::concat!(
                                     "Cell in column ",
@@ -349,8 +393,8 @@ fn make_common_traits(
                                 )
                             );
                         }
-                    }
-                )*
+                    )*
+                }
 
                 ::std::result::Result::Ok(Self(table))
             }
@@ -398,6 +442,7 @@ fn make_table_data_enum(
     vis: &Visibility,
     name: &Ident,
     generics: &Generics,
+    derive: Option<&PathList>,
     columns: &[&TableColumn],
 ) -> (ItemEnum, ItemImpl) {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
@@ -410,8 +455,13 @@ fn make_table_data_enum(
         into_variant,
     } = utils::make_variant_method_idents(columns);
 
+    let derive_attr = derive
+        .filter(|list| !list.is_empty())
+        .map(|list| quote!(#[derive(#(#list),*)]));
+
     let item_enum = parse_quote! {
         #[automatically_derived]
+        #derive_attr
         #vis enum #name #ty_generics #where_clause {
             #(#variant(#variant_ty)),*
         }

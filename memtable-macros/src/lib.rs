@@ -3,7 +3,7 @@
 mod derive;
 mod utils;
 
-#[proc_macro_derive(Table, attributes(tbl))]
+#[proc_macro_derive(Table, attributes(table))]
 pub fn derive_table(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     utils::do_derive(derive::do_derive_table)(input)
 }

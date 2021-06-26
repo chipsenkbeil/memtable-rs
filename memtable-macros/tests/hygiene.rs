@@ -27,6 +27,7 @@ struct MyRow {
     field15: ::std::primitive::u64,
     field16: ::std::primitive::u8,
     field17: ::std::primitive::usize,
+    field18: ::std::string::String,
 }
 
 // Struct should support generics
