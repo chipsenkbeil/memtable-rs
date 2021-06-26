@@ -20,16 +20,16 @@ pub trait CellIter<T>: std::iter::Iterator<Item = T> + Sized {
     }
 
     /// Zips up a cell iterator with the cell's position
-    fn zip_with_position(self) -> ZipPosition<Self, T> {
+    fn zip_with_position(self) -> ZipPosition<T, Self> {
         ZipPosition(self, PhantomData)
     }
 }
 
 /// Represents an iterator over some cell and its position
 #[derive(Debug)]
-pub struct ZipPosition<I: CellIter<T>, T>(I, PhantomData<T>);
+pub struct ZipPosition<T, I: CellIter<T>>(I, PhantomData<T>);
 
-impl<I: CellIter<T>, T> Iterator for ZipPosition<I, T> {
+impl<T, I: CellIter<T>> Iterator for ZipPosition<T, I> {
     type Item = (Position, T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -39,20 +39,20 @@ impl<I: CellIter<T>, T> Iterator for ZipPosition<I, T> {
 
 /// Represents an iterator over rows of a table
 #[derive(Debug)]
-pub struct Rows<'a, T> {
-    table: &'a Table<T>,
+pub struct Rows<'a, D, T: Table<Data = D>> {
+    table: &'a T,
     idx: usize,
 }
 
-impl<'a, T> Rows<'a, T> {
+impl<'a, D, T: Table<Data = D>> Rows<'a, D, T> {
     /// Produces an iterator that will iterator through all rows from the
     /// beginning of the table
-    pub fn new(table: &'a Table<T>) -> Self {
+    pub fn new(table: &'a T) -> Self {
         Self { table, idx: 0 }
     }
 
     /// Produces an iterator that will return no rows
-    pub fn empty(table: &'a Table<T>) -> Self {
+    pub fn empty(table: &'a T) -> Self {
         Self {
             table,
             idx: table.row_cnt(),
@@ -60,8 +60,8 @@ impl<'a, T> Rows<'a, T> {
     }
 }
 
-impl<'a, T> Iterator for Rows<'a, T> {
-    type Item = Row<'a, T>;
+impl<'a, D, T: Table<Data = D>> Iterator for Rows<'a, D, T> {
+    type Item = Row<'a, D, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.idx < self.table.row_cnt() {
@@ -79,26 +79,26 @@ impl<'a, T> Iterator for Rows<'a, T> {
     }
 }
 
-impl<'a, T> ExactSizeIterator for Rows<'a, T> {}
+impl<'a, D, T: Table<Data = D>> ExactSizeIterator for Rows<'a, D, T> {}
 
 /// Represents an iterator over cells within a row of a table
 #[derive(Debug)]
-pub struct Row<'a, T> {
-    table: &'a Table<T>,
+pub struct Row<'a, D, T: Table<Data = D>> {
+    table: &'a T,
     row: usize,
     col: usize,
 }
 
-impl<'a, T> Row<'a, T> {
+impl<'a, D, T: Table<Data = D>> Row<'a, D, T> {
     /// Creates a new iterator over the cells in a row for the given table
     /// at the specified row
-    pub fn new(table: &'a Table<T>, row: usize) -> Self {
+    pub fn new(table: &'a T, row: usize) -> Self {
         Self { table, row, col: 0 }
     }
 }
 
-impl<'a, T> Iterator for Row<'a, T> {
-    type Item = &'a T;
+impl<'a, D: 'a, T: Table<Data = D>> Iterator for Row<'a, D, T> {
+    type Item = &'a D;
 
     fn next(&mut self) -> Option<Self::Item> {
         let cell = self.table.get_cell(self.row, self.col);
@@ -114,9 +114,9 @@ impl<'a, T> Iterator for Row<'a, T> {
     }
 }
 
-impl<'a, T> ExactSizeIterator for Row<'a, T> {}
+impl<'a, D: 'a, T: Table<Data = D>> ExactSizeIterator for Row<'a, D, T> {}
 
-impl<'a, T> CellIter<&'a T> for Row<'a, T> {
+impl<'a, D, T: Table<Data = D>> CellIter<&'a D> for Row<'a, D, T> {
     fn row(&self) -> usize {
         self.row
     }
@@ -128,20 +128,20 @@ impl<'a, T> CellIter<&'a T> for Row<'a, T> {
 
 /// Represents an iterator over cells within a row of a table
 #[derive(Debug)]
-pub struct IntoRow<T> {
-    table: Table<T>,
+pub struct IntoRow<D, T: Table<Data = D>> {
+    table: T,
     row: usize,
     col: usize,
 }
 
-impl<T> IntoRow<T> {
-    pub fn new(table: Table<T>, row: usize) -> Self {
+impl<D, T: Table<Data = D>> IntoRow<D, T> {
+    pub fn new(table: T, row: usize) -> Self {
         Self { table, row, col: 0 }
     }
 }
 
-impl<'a, T> From<&'a IntoRow<T>> for Row<'a, T> {
-    fn from(it: &'a IntoRow<T>) -> Self {
+impl<'a, D, T: Table<Data = D>> From<&'a IntoRow<D, T>> for Row<'a, D, T> {
+    fn from(it: &'a IntoRow<D, T>) -> Self {
         Self {
             table: &it.table,
             row: it.row,
@@ -150,11 +150,11 @@ impl<'a, T> From<&'a IntoRow<T>> for Row<'a, T> {
     }
 }
 
-impl<T> Iterator for IntoRow<T> {
-    type Item = T;
+impl<D, T: Table<Data = D>> Iterator for IntoRow<D, T> {
+    type Item = D;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let cell = self.table.cells.remove(&Position::new(self.row, self.col));
+        let cell = self.table.remove_cell(self.row, self.col);
         if cell.is_some() {
             self.col += 1;
         }
@@ -167,9 +167,9 @@ impl<T> Iterator for IntoRow<T> {
     }
 }
 
-impl<T> ExactSizeIterator for IntoRow<T> {}
+impl<D, T: Table<Data = D>> ExactSizeIterator for IntoRow<D, T> {}
 
-impl<T> CellIter<T> for IntoRow<T> {
+impl<D, T: Table<Data = D>> CellIter<D> for IntoRow<D, T> {
     fn row(&self) -> usize {
         self.row
     }
@@ -181,20 +181,20 @@ impl<T> CellIter<T> for IntoRow<T> {
 
 /// Represents an iterator over columns of a table
 #[derive(Debug)]
-pub struct Columns<'a, T> {
-    table: &'a Table<T>,
+pub struct Columns<'a, D, T: Table<Data = D>> {
+    table: &'a T,
     idx: usize,
 }
 
-impl<'a, T> Columns<'a, T> {
+impl<'a, D, T: Table<Data = D>> Columns<'a, D, T> {
     /// Produces an iterator that will iterator through all columns from the
     /// beginning of the table
-    pub fn new(table: &'a Table<T>) -> Self {
+    pub fn new(table: &'a T) -> Self {
         Self { table, idx: 0 }
     }
 
     /// Produces an iterator that will return no columns
-    pub fn empty(table: &'a Table<T>) -> Self {
+    pub fn empty(table: &'a T) -> Self {
         Self {
             table,
             idx: table.col_cnt(),
@@ -202,8 +202,8 @@ impl<'a, T> Columns<'a, T> {
     }
 }
 
-impl<'a, T> Iterator for Columns<'a, T> {
-    type Item = Column<'a, T>;
+impl<'a, D, T: Table<Data = D>> Iterator for Columns<'a, D, T> {
+    type Item = Column<'a, D, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.idx < self.table.col_cnt() {
@@ -221,26 +221,26 @@ impl<'a, T> Iterator for Columns<'a, T> {
     }
 }
 
-impl<'a, T> ExactSizeIterator for Columns<'a, T> {}
+impl<'a, D, T: Table<Data = D>> ExactSizeIterator for Columns<'a, D, T> {}
 
 /// Represents an iterator over cells within a column of a table
 #[derive(Debug)]
-pub struct Column<'a, T> {
-    table: &'a Table<T>,
+pub struct Column<'a, D, T: Table<Data = D>> {
+    table: &'a T,
     row: usize,
     col: usize,
 }
 
-impl<'a, T> Column<'a, T> {
+impl<'a, D, T: Table<Data = D>> Column<'a, D, T> {
     /// Creates a new iterator over the cells in a column for the given table
     /// at the specified column
-    pub fn new(table: &'a Table<T>, col: usize) -> Self {
+    pub fn new(table: &'a T, col: usize) -> Self {
         Self { table, row: 0, col }
     }
 }
 
-impl<'a, T> Iterator for Column<'a, T> {
-    type Item = &'a T;
+impl<'a, D: 'a, T: Table<Data = D>> Iterator for Column<'a, D, T> {
+    type Item = &'a D;
 
     fn next(&mut self) -> Option<Self::Item> {
         let cell = self.table.get_cell(self.row, self.col);
@@ -256,9 +256,9 @@ impl<'a, T> Iterator for Column<'a, T> {
     }
 }
 
-impl<'a, T> ExactSizeIterator for Column<'a, T> {}
+impl<'a, D: 'a, T: Table<Data = D>> ExactSizeIterator for Column<'a, D, T> {}
 
-impl<'a, T> CellIter<&'a T> for Column<'a, T> {
+impl<'a, D, T: Table<Data = D>> CellIter<&'a D> for Column<'a, D, T> {
     fn row(&self) -> usize {
         self.row
     }
@@ -270,20 +270,20 @@ impl<'a, T> CellIter<&'a T> for Column<'a, T> {
 
 /// Represents an iterator over cells within a column of a table
 #[derive(Debug)]
-pub struct IntoColumn<T> {
-    table: Table<T>,
+pub struct IntoColumn<D, T: Table<Data = D>> {
+    table: T,
     row: usize,
     col: usize,
 }
 
-impl<T> IntoColumn<T> {
-    pub fn new(table: Table<T>, col: usize) -> Self {
+impl<D, T: Table<Data = D>> IntoColumn<D, T> {
+    pub fn new(table: T, col: usize) -> Self {
         Self { table, row: 0, col }
     }
 }
 
-impl<'a, T> From<&'a IntoColumn<T>> for Column<'a, T> {
-    fn from(it: &'a IntoColumn<T>) -> Self {
+impl<'a, D, T: Table<Data = D>> From<&'a IntoColumn<D, T>> for Column<'a, D, T> {
+    fn from(it: &'a IntoColumn<D, T>) -> Self {
         Self {
             table: &it.table,
             row: it.row,
@@ -292,11 +292,11 @@ impl<'a, T> From<&'a IntoColumn<T>> for Column<'a, T> {
     }
 }
 
-impl<T> Iterator for IntoColumn<T> {
-    type Item = T;
+impl<D, T: Table<Data = D>> Iterator for IntoColumn<D, T> {
+    type Item = D;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let cell = self.table.cells.remove(&Position::new(self.row, self.col));
+        let cell = self.table.remove_cell(self.row, self.col);
         if cell.is_some() {
             self.row += 1;
         }
@@ -309,9 +309,9 @@ impl<T> Iterator for IntoColumn<T> {
     }
 }
 
-impl<T> ExactSizeIterator for IntoColumn<T> {}
+impl<D, T: Table<Data = D>> ExactSizeIterator for IntoColumn<D, T> {}
 
-impl<T> CellIter<T> for IntoColumn<T> {
+impl<D, T: Table<Data = D>> CellIter<D> for IntoColumn<D, T> {
     fn row(&self) -> usize {
         self.row
     }
@@ -323,14 +323,14 @@ impl<T> CellIter<T> for IntoColumn<T> {
 
 /// Represents an iterator over cells within a table
 #[derive(Debug)]
-pub struct Cells<'a, T> {
-    table: &'a Table<T>,
+pub struct Cells<'a, D, T: Table<Data = D>> {
+    table: &'a T,
     row: usize,
     col: usize,
 }
 
-impl<'a, T> Cells<'a, T> {
-    pub fn new(table: &'a Table<T>) -> Self {
+impl<'a, D, T: Table<Data = D>> Cells<'a, D, T> {
+    pub fn new(table: &'a T) -> Self {
         Self {
             table,
             row: 0,
@@ -339,8 +339,8 @@ impl<'a, T> Cells<'a, T> {
     }
 }
 
-impl<'a, T> Iterator for Cells<'a, T> {
-    type Item = &'a T;
+impl<'a, D: 'a, T: Table<Data = D>> Iterator for Cells<'a, D, T> {
+    type Item = &'a D;
 
     fn next(&mut self) -> Option<Self::Item> {
         let cell = self.table.get_cell(self.row, self.col);
@@ -378,9 +378,9 @@ impl<'a, T> Iterator for Cells<'a, T> {
     }
 }
 
-impl<'a, T> ExactSizeIterator for Cells<'a, T> {}
+impl<'a, D: 'a, T: Table<Data = D>> ExactSizeIterator for Cells<'a, D, T> {}
 
-impl<'a, T> CellIter<&'a T> for Cells<'a, T> {
+impl<'a, D, T: Table<Data = D>> CellIter<&'a D> for Cells<'a, D, T> {
     fn row(&self) -> usize {
         self.row
     }
@@ -392,14 +392,14 @@ impl<'a, T> CellIter<&'a T> for Cells<'a, T> {
 
 /// Represents an iterator over cells within a table
 #[derive(Debug)]
-pub struct IntoCells<T> {
-    table: Table<T>,
+pub struct IntoCells<D, T: Table<Data = D>> {
+    table: T,
     row: usize,
     col: usize,
 }
 
-impl<T> IntoCells<T> {
-    pub fn new(table: Table<T>) -> Self {
+impl<D, T: Table<Data = D>> IntoCells<D, T> {
+    pub fn new(table: T) -> Self {
         Self {
             table,
             row: 0,
@@ -408,8 +408,8 @@ impl<T> IntoCells<T> {
     }
 }
 
-impl<'a, T> From<&'a IntoCells<T>> for Cells<'a, T> {
-    fn from(it: &'a IntoCells<T>) -> Self {
+impl<'a, D, T: Table<Data = D>> From<&'a IntoCells<D, T>> for Cells<'a, D, T> {
+    fn from(it: &'a IntoCells<D, T>) -> Self {
         Self {
             table: &it.table,
             row: it.row,
@@ -418,11 +418,11 @@ impl<'a, T> From<&'a IntoCells<T>> for Cells<'a, T> {
     }
 }
 
-impl<T> Iterator for IntoCells<T> {
-    type Item = T;
+impl<D, T: Table<Data = D>> Iterator for IntoCells<D, T> {
+    type Item = D;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let cell = self.table.cells.remove(&Position::new(self.row, self.col));
+        let cell = self.table.remove_cell(self.row, self.col);
         let col_cnt = self.table.col_cnt();
         let row_cnt = self.table.row_cnt();
 
@@ -457,9 +457,9 @@ impl<T> Iterator for IntoCells<T> {
     }
 }
 
-impl<T> ExactSizeIterator for IntoCells<T> {}
+impl<D, T: Table<Data = D>> ExactSizeIterator for IntoCells<D, T> {}
 
-impl<T> CellIter<T> for IntoCells<T> {
+impl<D, T: Table<Data = D>> CellIter<D> for IntoCells<D, T> {
     fn row(&self) -> usize {
         self.row
     }
@@ -474,6 +474,10 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
+    // NOTE: For simplicity, we use our one concrete implementor of the table
+    //       trait as our test table
+    type TestTable<T> = crate::MemTable<T>;
+
     fn make_hashmap<T>(items: Vec<(usize, usize, T)>) -> HashMap<Position, T> {
         items
             .into_iter()
@@ -483,7 +487,7 @@ mod tests {
 
     #[test]
     fn rows_next_should_return_next_row_if_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut rows = table.rows();
         assert!(rows.next().is_some());
@@ -491,7 +495,7 @@ mod tests {
 
     #[test]
     fn rows_next_should_return_none_if_no_more_rows_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut rows = table.rows();
         rows.next();
@@ -500,7 +504,7 @@ mod tests {
 
     #[test]
     fn rows_size_hint_should_return_remaining_rows_as_both_bounds() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut rows = table.rows();
         assert_eq!(rows.size_hint(), (1, Some(1)));
@@ -511,7 +515,7 @@ mod tests {
 
     #[test]
     fn row_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (1, 0, "c"),
@@ -537,7 +541,7 @@ mod tests {
 
     #[test]
     fn row_should_iterator_through_appropriate_cells() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (1, 0, "c"),
@@ -551,7 +555,7 @@ mod tests {
 
     #[test]
     fn row_next_should_return_next_cell_if_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut row = table.row(0);
         assert!(row.next().is_some());
@@ -559,7 +563,7 @@ mod tests {
 
     #[test]
     fn row_next_should_return_none_if_no_more_cells_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut row = table.row(0);
         row.next();
@@ -568,7 +572,7 @@ mod tests {
 
     #[test]
     fn row_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut row = table.row(0);
         assert_eq!(row.size_hint(), (1, Some(1)));
@@ -579,7 +583,7 @@ mod tests {
 
     #[test]
     fn into_row_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (1, 0, "c"),
@@ -603,7 +607,7 @@ mod tests {
 
     #[test]
     fn into_row_should_iterator_through_appropriate_cells() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (1, 0, "c"),
@@ -620,7 +624,7 @@ mod tests {
 
     #[test]
     fn into_row_next_should_return_next_cell_if_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut row = table.into_row(0);
         assert!(row.next().is_some());
@@ -628,7 +632,7 @@ mod tests {
 
     #[test]
     fn into_row_next_should_return_none_if_no_more_cells_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut row = table.into_row(0);
         row.next();
@@ -637,7 +641,7 @@ mod tests {
 
     #[test]
     fn into_row_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut row = table.into_row(0);
         assert_eq!(row.size_hint(), (1, Some(1)));
@@ -648,7 +652,7 @@ mod tests {
 
     #[test]
     fn columns_next_should_return_next_column_if_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut columns = table.columns();
         assert!(columns.next().is_some());
@@ -656,7 +660,7 @@ mod tests {
 
     #[test]
     fn columns_next_should_return_none_if_no_more_columns_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut columns = table.columns();
         columns.next();
@@ -665,7 +669,7 @@ mod tests {
 
     #[test]
     fn columns_size_hint_should_return_remaining_columns_as_both_bounds() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut columns = table.columns();
         assert_eq!(columns.size_hint(), (1, Some(1)));
@@ -676,7 +680,7 @@ mod tests {
 
     #[test]
     fn column_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (0, 2, "c"),
@@ -702,7 +706,7 @@ mod tests {
 
     #[test]
     fn column_should_iterator_through_appropriate_cells() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (0, 2, "c"),
@@ -716,7 +720,7 @@ mod tests {
 
     #[test]
     fn column_next_should_return_next_cell_if_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut column = table.column(0);
         assert!(column.next().is_some());
@@ -724,7 +728,7 @@ mod tests {
 
     #[test]
     fn column_next_should_return_none_if_no_more_cells_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut column = table.column(0);
         column.next();
@@ -733,7 +737,7 @@ mod tests {
 
     #[test]
     fn column_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut column = table.column(0);
         assert_eq!(column.size_hint(), (1, Some(1)));
@@ -744,7 +748,7 @@ mod tests {
 
     #[test]
     fn into_column_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (0, 2, "c"),
@@ -768,7 +772,7 @@ mod tests {
 
     #[test]
     fn into_column_should_iterator_through_appropriate_cells() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (0, 2, "c"),
@@ -785,7 +789,7 @@ mod tests {
 
     #[test]
     fn into_column_next_should_return_next_cell_if_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut column = table.into_column(0);
         assert!(column.next().is_some());
@@ -793,7 +797,7 @@ mod tests {
 
     #[test]
     fn into_column_next_should_return_none_if_no_more_cells_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut column = table.into_column(0);
         column.next();
@@ -802,7 +806,7 @@ mod tests {
 
     #[test]
     fn into_column_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut column = table.into_column(0);
         assert_eq!(column.size_hint(), (1, Some(1)));
@@ -813,7 +817,7 @@ mod tests {
 
     #[test]
     fn cells_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (0, 2, "c"),
@@ -833,7 +837,7 @@ mod tests {
 
     #[test]
     fn cells_should_iterator_through_appropriate_cells() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (0, 2, "c"),
@@ -850,7 +854,7 @@ mod tests {
 
     #[test]
     fn cells_next_should_return_next_cell_if_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut cells = table.cells();
         assert!(cells.next().is_some());
@@ -858,7 +862,7 @@ mod tests {
 
     #[test]
     fn cells_next_should_return_none_if_no_more_cells_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut cells = table.cells();
         cells.next();
@@ -867,7 +871,7 @@ mod tests {
 
     #[test]
     fn cells_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut cells = table.cells();
         assert_eq!(cells.size_hint(), (1, Some(1)));
@@ -878,7 +882,7 @@ mod tests {
 
     #[test]
     fn into_cells_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (0, 2, "c"),
@@ -898,7 +902,7 @@ mod tests {
 
     #[test]
     fn into_cells_should_iterator_through_all_cells() {
-        let table = Table::from(make_hashmap(vec![
+        let table = TestTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (0, 2, "c"),
@@ -915,7 +919,7 @@ mod tests {
 
     #[test]
     fn into_cells_next_should_return_next_cell_if_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut cells = table.into_cells();
         assert!(cells.next().is_some());
@@ -923,7 +927,7 @@ mod tests {
 
     #[test]
     fn into_cells_next_should_return_none_if_no_more_cells_available() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut cells = table.into_cells();
         cells.next();
@@ -932,7 +936,7 @@ mod tests {
 
     #[test]
     fn into_cells_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = Table::from(make_hashmap(vec![(0, 0, "")]));
+        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
 
         let mut cells = table.into_cells();
         assert_eq!(cells.size_hint(), (1, Some(1)));

@@ -3,10 +3,6 @@
 //       macros produce code with proper pathing; no tests are needed here as
 //       this is purely validating that the macros are hygienic via compilation
 
-// NOTE: Macros is looking for memtable, so we map our core crate since that's
-//       actually what is used underneath
-extern crate memtable_core as memtable;
-
 // Struct should be supported with all primitive types
 #[derive(::memtable_macros::Table)]
 struct MyRow {
