@@ -11,7 +11,7 @@ use std::{
 /// rows
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
-pub struct FixedColumnMemTable<T: Default, const COL: usize> {
+pub struct FixedColumnTable<T: Default, const COL: usize> {
     #[cfg_attr(
         feature = "serde-1",
         serde(
@@ -28,7 +28,7 @@ pub struct FixedColumnMemTable<T: Default, const COL: usize> {
     row_cnt: usize,
 }
 
-impl<T: Default, const COL: usize> FixedColumnMemTable<T, COL> {
+impl<T: Default, const COL: usize> FixedColumnTable<T, COL> {
     /// Creates a new, empty table
     pub fn new() -> Self {
         Self::default()
@@ -46,12 +46,12 @@ impl<T: Default, const COL: usize> FixedColumnMemTable<T, COL> {
     }
 
     /// Returns an iterator over the cells and their positions within the table
-    pub fn iter(&self) -> ZipPosition<&T, Cells<T, FixedColumnMemTable<T, COL>>> {
+    pub fn iter(&self) -> ZipPosition<&T, Cells<T, FixedColumnTable<T, COL>>> {
         self.into_iter()
     }
 }
 
-impl<T: Default, const COL: usize> Table for FixedColumnMemTable<T, COL> {
+impl<T: Default, const COL: usize> Table for FixedColumnTable<T, COL> {
     type Data = T;
 
     fn row_cnt(&self) -> usize {
@@ -104,16 +104,16 @@ impl<T: Default, const COL: usize> Table for FixedColumnMemTable<T, COL> {
     }
 }
 
-impl<T: Default, const COL: usize> From<Vec<[T; COL]>> for FixedColumnMemTable<T, COL> {
+impl<T: Default, const COL: usize> From<Vec<[T; COL]>> for FixedColumnTable<T, COL> {
     fn from(cells: Vec<[T; COL]>) -> Self {
         let row_cnt = cells.len();
         Self { cells, row_cnt }
     }
 }
 
-impl<'a, T: Default, const COL: usize> IntoIterator for &'a FixedColumnMemTable<T, COL> {
+impl<'a, T: Default, const COL: usize> IntoIterator for &'a FixedColumnTable<T, COL> {
     type Item = (Position, &'a T);
-    type IntoIter = ZipPosition<&'a T, Cells<'a, T, FixedColumnMemTable<T, COL>>>;
+    type IntoIter = ZipPosition<&'a T, Cells<'a, T, FixedColumnTable<T, COL>>>;
 
     /// Converts into an iterator over the table's cells' positions and values
     fn into_iter(self) -> Self::IntoIter {
@@ -121,9 +121,9 @@ impl<'a, T: Default, const COL: usize> IntoIterator for &'a FixedColumnMemTable<
     }
 }
 
-impl<T: Default, const COL: usize> IntoIterator for FixedColumnMemTable<T, COL> {
+impl<T: Default, const COL: usize> IntoIterator for FixedColumnTable<T, COL> {
     type Item = (Position, T);
-    type IntoIter = ZipPosition<T, IntoCells<T, FixedColumnMemTable<T, COL>>>;
+    type IntoIter = ZipPosition<T, IntoCells<T, FixedColumnTable<T, COL>>>;
 
     /// Converts into an iterator over the table's cells' positions and values
     fn into_iter(self) -> Self::IntoIter {
@@ -132,7 +132,7 @@ impl<T: Default, const COL: usize> IntoIterator for FixedColumnMemTable<T, COL> 
 }
 
 impl<T: Default, V: Into<T>, const COL: usize> FromIterator<(usize, usize, V)>
-    for FixedColumnMemTable<T, COL>
+    for FixedColumnTable<T, COL>
 {
     /// Produces a table from the provided iterator of (row, col, value). All
     /// values that would go outside of the range of the table will be dropped.
@@ -146,7 +146,7 @@ impl<T: Default, V: Into<T>, const COL: usize> FromIterator<(usize, usize, V)>
 }
 
 impl<T: Default, V: Into<T>, const COL: usize> FromIterator<(Position, V)>
-    for FixedColumnMemTable<T, COL>
+    for FixedColumnTable<T, COL>
 {
     /// Produces a table from the provided iterator of (position, value). All
     /// values that would go outside of the range of the table will be dropped.
@@ -159,7 +159,7 @@ impl<T: Default, V: Into<T>, const COL: usize> FromIterator<(Position, V)>
     }
 }
 
-impl<T: Default, const COL: usize> Index<(usize, usize)> for FixedColumnMemTable<T, COL> {
+impl<T: Default, const COL: usize> Index<(usize, usize)> for FixedColumnTable<T, COL> {
     type Output = T;
 
     /// Indexes into a table by a specific row and column, returning a
@@ -170,7 +170,7 @@ impl<T: Default, const COL: usize> Index<(usize, usize)> for FixedColumnMemTable
     }
 }
 
-impl<T: Default, const COL: usize> IndexMut<(usize, usize)> for FixedColumnMemTable<T, COL> {
+impl<T: Default, const COL: usize> IndexMut<(usize, usize)> for FixedColumnTable<T, COL> {
     /// Indexes into a table by a specific row and column, returning a mutable
     /// reference to the cell if it exists, otherwise panicking
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
@@ -185,10 +185,10 @@ mod tests {
 
     #[test]
     fn row_cnt_should_be_dynamic() {
-        let table: FixedColumnMemTable<usize, 0> = FixedColumnMemTable::new();
+        let table: FixedColumnTable<usize, 0> = FixedColumnTable::new();
         assert_eq!(table.row_cnt(), 0);
 
-        let mut table: FixedColumnMemTable<usize, 4> = FixedColumnMemTable::new();
+        let mut table: FixedColumnTable<usize, 4> = FixedColumnTable::new();
         table.push_row(vec![1, 2, 3, 4]);
         table.push_row(vec![1, 2, 3, 4]);
         table.push_row(vec![1, 2, 3, 4]);
@@ -197,16 +197,16 @@ mod tests {
 
     #[test]
     fn col_cnt_should_match_fixed_row_size() {
-        let table: FixedColumnMemTable<usize, 0> = FixedColumnMemTable::new();
+        let table: FixedColumnTable<usize, 0> = FixedColumnTable::new();
         assert_eq!(table.col_cnt(), 0);
 
-        let table: FixedColumnMemTable<usize, 3> = FixedColumnMemTable::new();
+        let table: FixedColumnTable<usize, 3> = FixedColumnTable::new();
         assert_eq!(table.col_cnt(), 3);
     }
 
     #[test]
     fn get_cell_should_return_ref_to_cell_at_location() {
-        let table = FixedColumnMemTable::from(vec![["a", "b"], ["c", "d"]]);
+        let table = FixedColumnTable::from(vec![["a", "b"], ["c", "d"]]);
         assert_eq!(table.get_cell(0, 0), Some(&"a"));
         assert_eq!(table.get_cell(0, 1), Some(&"b"));
         assert_eq!(table.get_cell(1, 0), Some(&"c"));
@@ -216,14 +216,14 @@ mod tests {
 
     #[test]
     fn get_mut_cell_should_return_mut_ref_to_cell_at_location() {
-        let mut table = FixedColumnMemTable::from(vec![["a", "b"], ["c", "d"]]);
+        let mut table = FixedColumnTable::from(vec![["a", "b"], ["c", "d"]]);
         *table.get_mut_cell(0, 0).unwrap() = "e";
         assert_eq!(table.get_cell(0, 0), Some(&"e"));
     }
 
     #[test]
     fn insert_cell_should_return_previous_cell_and_overwrite_content() {
-        let mut table: FixedColumnMemTable<usize, 3> = FixedColumnMemTable::new();
+        let mut table: FixedColumnTable<usize, 3> = FixedColumnTable::new();
 
         assert_eq!(table.insert_cell(0, 0, 123), Some(usize::default()));
         assert_eq!(table.insert_cell(0, 0, 999), Some(123));
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn remove_cell_should_return_cell_that_is_removed() {
-        let mut table = FixedColumnMemTable::from(vec![[1, 2], [3, 4]]);
+        let mut table = FixedColumnTable::from(vec![[1, 2], [3, 4]]);
 
         // NOTE: Because fixed table uses a default value when removing,
         //       we should see the default value of a number (0) be injected
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn truncate_should_remove_cells_outside_of_row_capacity_count() {
         let mut table =
-            FixedColumnMemTable::from(vec![["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+            FixedColumnTable::from(vec![["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
 
         // Should do nothing if all cells are within capacities
         table.truncate();
@@ -286,7 +286,7 @@ mod tests {
 
     #[test]
     fn shrink_to_fit_should_adjust_row_count_based_on_cell_positions() {
-        let mut table: FixedColumnMemTable<&'static str, 3> = FixedColumnMemTable::new();
+        let mut table: FixedColumnTable<&'static str, 3> = FixedColumnTable::new();
         assert_eq!(table.row_cnt(), 0);
         assert_eq!(table.col_cnt(), 3);
 
@@ -302,20 +302,20 @@ mod tests {
 
     #[test]
     fn index_by_row_and_column_should_return_cell_ref() {
-        let table = FixedColumnMemTable::from(vec![[1, 2, 3]]);
+        let table = FixedColumnTable::from(vec![[1, 2, 3]]);
         assert_eq!(table[(0, 1)], 2);
     }
 
     #[test]
     #[should_panic]
     fn index_by_row_and_column_should_panic_if_cell_not_found() {
-        let table = FixedColumnMemTable::from(vec![[1, 2, 3]]);
+        let table = FixedColumnTable::from(vec![[1, 2, 3]]);
         let _ = table[(1, 0)];
     }
 
     #[test]
     fn index_mut_by_row_and_column_should_return_mutable_cell() {
-        let mut table = FixedColumnMemTable::from(vec![[1, 2, 3]]);
+        let mut table = FixedColumnTable::from(vec![[1, 2, 3]]);
         table[(0, 1)] = 999;
 
         // Verify on the altered cell was changed
@@ -327,7 +327,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn index_mut_by_row_and_column_should_panic_if_cell_not_found() {
-        let mut table = FixedColumnMemTable::from(vec![[1, 2, 3]]);
+        let mut table = FixedColumnTable::from(vec![[1, 2, 3]]);
         table[(1, 0)] = 999;
     }
 }

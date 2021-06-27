@@ -1,4 +1,10 @@
 #![cfg_attr(feature = "docs", feature(doc_cfg))]
+//! # memtable-core
+//!
+//! Provides the core structs and traits for use in table manipulation.
+//!
+//! Check out full documentation at
+//! [memtable](https://github.com/chipsenkbeil/memtable-rs).
 
 /// Contains extensions to the library based on extra features
 pub mod exts;

@@ -92,8 +92,8 @@ for inclusion in vimvar by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 </sub>
 
-[build_img]: https://github.com/chipsenkbeil/memtable/workflows/CI/badge.svg
-[build_lnk]: https://github.com/chipsenkbeil/memtable/actions
+[build_img]: https://github.com/chipsenkbeil/memtable-rs/workflows/CI/badge.svg
+[build_lnk]: https://github.com/chipsenkbeil/memtable-rs/actions
 [crates_img]: https://img.shields.io/crates/v/memtable.svg
 [crates_lnk]: https://crates.io/crates/memtable
 [doc_img]: https://docs.rs/memtable/badge.svg

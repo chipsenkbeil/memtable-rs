@@ -14,7 +14,8 @@ fn get_crate(cname: &str, no_error: bool) -> darling::Result<Path> {
     let res = crate_name(cname)
         .map(|found_crate| match found_crate {
             FoundCrate::Itself => {
-                parse_quote!(crate)
+                let crate_ident = Ident::new(&cname, Span::mixed_site());
+                parse_quote!(::#crate_ident)
             }
             FoundCrate::Name(name) => {
                 let crate_ident = Ident::new(&name, Span::mixed_site());

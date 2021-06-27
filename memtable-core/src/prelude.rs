@@ -15,9 +15,9 @@
 //! * [`FixedTable`] struct - available with Rust 1.51+ - provides a fixed-sized
 //!   counterpart to [`MemTable`] where the table is pre-allocated internally
 //!   using a 2D array
-//! * [`FixedRowMemTable`] struct, where the total rows is fixed and columns
+//! * [`FixedRowTable`] struct, where the total rows is fixed and columns
 //!   can grow dynamically
-//! * [`FixedColumnMemTable`] struct, where the total columns is fixed and rows
+//! * [`FixedColumnTable`] struct, where the total columns is fixed and rows
 //!   can grow dynamically
 //! * [`Table`] trait, which provides the majority of the methods
 //!   available to operate on a table
@@ -26,7 +26,7 @@
 //!   an iterator with the position of each cell
 //!
 pub use crate::{
-    impls::{FixedColumnMemTable, FixedRowMemTable, FixedTable, MemTable},
+    impls::{FixedColumnTable, FixedRowTable, FixedTable, MemTable},
     iter::CellIter,
     Table,
 };
