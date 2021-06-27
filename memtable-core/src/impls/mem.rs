@@ -53,6 +53,7 @@ impl<T> MemTable<T> {
         self.col_cnt = max_col;
     }
 
+    /// Returns an iterator over the cells and their positions within the table
     pub fn iter(&self) -> ZipPosition<&T, Cells<T, MemTable<T>>> {
         self.into_iter()
     }
