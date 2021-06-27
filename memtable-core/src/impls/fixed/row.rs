@@ -90,7 +90,12 @@ impl<T: Default, const ROW: usize> Table for FixedRowMemTable<T, ROW> {
     }
 
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data> {
-        if row < ROW && col < self.col_cnt {
+        if row < ROW {
+            if col >= self.col_cnt {
+                self.cells[row].resize_with(col + 1, Default::default);
+                self.col_cnt = col + 1;
+            }
+
             Some(mem::replace(&mut self.cells[row][col], value))
         } else {
             None
@@ -204,7 +209,9 @@ mod tests {
         assert_eq!(table.col_cnt(), 0);
 
         let mut table: FixedRowMemTable<usize, 1> = FixedRowMemTable::new();
-        table.push_column(vec![1, 2, 3]);
+        table.push_column([1, 2, 3]);
+        table.push_column([1, 2, 3]);
+        table.push_column([1, 2, 3]);
 
         assert_eq!(table.col_cnt(), 3);
     }
@@ -230,7 +237,7 @@ mod tests {
     fn insert_cell_should_return_previous_cell_and_overwrite_content() {
         let mut table: FixedRowMemTable<usize, 3> = FixedRowMemTable::new();
 
-        assert_eq!(table.insert_cell(0, 0, 123), Some(usize::default()));
+        assert_eq!(table.insert_cell(0, 0, 123), Some(0));
         assert_eq!(table.insert_cell(0, 0, 999), Some(123));
         assert_eq!(table.get_cell(0, 0), Some(&999))
     }
@@ -273,8 +280,7 @@ mod tests {
             ]
         );
 
-        // Trucate from 3x3 to 2x2
-        table.set_row_capacity(table.row_cnt() - 1);
+        // Trucate from 3x3 to 3x2
         table.set_column_capacity(table.col_cnt() - 1);
         table.truncate();
         assert_eq!(
@@ -282,7 +288,14 @@ mod tests {
                 .iter()
                 .map(|(pos, x)| (pos.row, pos.col, *x))
                 .collect::<Vec<(usize, usize, &str)>>(),
-            vec![(0, 0, "a"), (0, 1, "b"), (1, 0, "d"), (1, 1, "e")]
+            vec![
+                (0, 0, "a"),
+                (0, 1, "b"),
+                (1, 0, "d"),
+                (1, 1, "e"),
+                (2, 0, "g"),
+                (2, 1, "h"),
+            ]
         );
     }
 

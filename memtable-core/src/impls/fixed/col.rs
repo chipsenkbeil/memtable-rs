@@ -42,7 +42,7 @@ impl<T: Default, const COL: usize> FixedColumnMemTable<T, COL> {
 
     /// Shrinks the table's row capacity to fit where cells exist
     pub fn shrink_to_fit(&mut self) {
-        self.row_cnt = self.len();
+        self.row_cnt = self.cells.len();
     }
 
     /// Returns an iterator over the cells and their positions within the table
@@ -79,7 +79,12 @@ impl<T: Default, const COL: usize> Table for FixedColumnMemTable<T, COL> {
     }
 
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data> {
-        if row < self.row_cnt && col < COL {
+        if col < COL {
+            if row >= self.row_cnt {
+                self.cells.resize_with(row + 1, utils::default_array);
+                self.row_cnt = row + 1;
+            }
+
             Some(mem::replace(&mut self.cells[row][col], value))
         } else {
             None
@@ -179,24 +184,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn row_cnt_should_match_fixed_row_size() {
+    fn row_cnt_should_be_dynamic() {
         let table: FixedColumnMemTable<usize, 0> = FixedColumnMemTable::new();
         assert_eq!(table.row_cnt(), 0);
 
-        let table: FixedColumnMemTable<usize, 4> = FixedColumnMemTable::new();
-        assert_eq!(table.row_cnt(), 4);
+        let mut table: FixedColumnMemTable<usize, 4> = FixedColumnMemTable::new();
+        table.push_row([1, 2, 3, 4]);
+        table.push_row([1, 2, 3, 4]);
+        table.push_row([1, 2, 3, 4]);
+        assert_eq!(table.row_cnt(), 3);
     }
 
     #[test]
-    fn col_cnt_should_be_dynamic() {
+    fn col_cnt_should_match_fixed_row_size() {
         let table: FixedColumnMemTable<usize, 0> = FixedColumnMemTable::new();
         assert_eq!(table.col_cnt(), 0);
 
-        let mut table: FixedColumnMemTable<usize, 0> = FixedColumnMemTable::new();
-        table.push_column([]);
-        table.push_column([]);
-        table.push_column([]);
-
+        let table: FixedColumnMemTable<usize, 3> = FixedColumnMemTable::new();
         assert_eq!(table.col_cnt(), 3);
     }
 
@@ -261,16 +265,22 @@ mod tests {
             ]
         );
 
-        // Trucate from 3x3 to 2x2
+        // Trucate from 3x3 to 2x3
         table.set_row_capacity(table.row_cnt() - 1);
-        table.set_column_capacity(table.col_cnt() - 1);
         table.truncate();
         assert_eq!(
             table
                 .iter()
                 .map(|(pos, x)| (pos.row, pos.col, *x))
                 .collect::<Vec<(usize, usize, &str)>>(),
-            vec![(0, 0, "a"), (0, 1, "b"), (1, 0, "d"), (1, 1, "e")]
+            vec![
+                (0, 0, "a"),
+                (0, 1, "b"),
+                (0, 2, "c"),
+                (1, 0, "d"),
+                (1, 1, "e"),
+                (1, 2, "f")
+            ]
         );
     }
 

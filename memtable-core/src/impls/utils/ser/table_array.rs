@@ -1,3 +1,5 @@
+#![allow(clippy::needless_range_loop)]
+
 use serde::ser;
 
 /// Workaround for https://github.com/serde-rs/serde/issues/1937

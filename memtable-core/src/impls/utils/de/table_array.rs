@@ -1,3 +1,5 @@
+#![allow(clippy::needless_range_loop)]
+
 use super::default_table_array;
 use serde::de;
 
