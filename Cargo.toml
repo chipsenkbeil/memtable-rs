@@ -1,7 +1,13 @@
 [package]
 name = "memtable"
+description = "Inmemory tables for use in Rust"
 version = "0.1.0"
+authors = ["Chip Senkbeil <chip@senkbeil.org>"]
 edition = "2018"
+homepage = "https://github.com/chipsenkbeil/memtable-rs"
+repository = "https://github.com/chipsenkbeil/memtable-rs"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
 
 [features]
 cell = ["memtable-core/cell"]
