@@ -24,7 +24,7 @@ memtable = "0.1"
 
 ## Usage
 
-Most often, you will want to import the [`prelude`] to bring in relevant
+Most often, you will want to import the `prelude` to bring in relevant
 traits and structs:
 
 ```rust
@@ -46,42 +46,37 @@ assert_eq!(table[(1, 2)], 999);
 
 In the core library, you will find four primary tables:
 
-- [`MemTable`]: table with a dynamic capacity for rows & columns
-- [`FixedTable`]: table with a fixed capacity for rows & columns
-- [`FixedRowTable`]: table with a fixed capacity for rows & dynamic capacity for columns
-- [`FixedColumnTable`]: table with a dynamic capacity for rows & fixed capacity for columns
+- `MemTable`: table with a dynamic capacity for rows & columns
+- `FixedTable`: table with a fixed capacity for rows & columns
+- `FixedRowTable`: table with a fixed capacity for rows & dynamic capacity for columns
+- `FixedColumnTable`: table with a dynamic capacity for rows & fixed capacity for columns
 
 ## The Traits
 
-- [`Table`]: primary trait that exposes majority of common operations to
-             perform on tables
-- [`iter::CellIter`]: common trait that table iterators focused on
-                      individual cells that enables zipping with a cell's
-                      position and getting the current row & column of
-                      the iterator
+- `Table`: primary trait that exposes majority of common operations
+  to perform on tables
+- `CellIter`: common trait that table iterators focused on
+  individual cells that enables zipping with a cell's
+  position and getting the current row & column of
+  the iterator
 
 ## The Extensions
 
 Alongside the essentials, the library also provides several features that
 provide extensions to the table arsenal:
 
-- **csv**: enables [`exts::csv::FromCsv`] and [`exts::csv::ToCsv`]
-- **cell**: enables [`exts::cell::Cell2`] and more up to [`exts::cell::Cell26`]
+- **csv**: enables `FromCsv` and `ToCsv`
+- **cell**: enables `Cell2` and more up to `Cell26`
 - **serde**: enables *serde* support on all table implementations
-- **macros**: enables [`macro@Table`] macro to derive new struct that
-              implements the [`Table`] trait to be able to store some
-              struct into a dedicated, inmemory table
+- **macros**: enables `Table` macro to derive new struct that implements the
+  `Table` trait to be able to store some struct into a dedicated, inmemory table
 
 ## The Macros
 
-Currently, there is a singular macro, [`macro@Table`], which is used to
+Currently, there is a singular macro, `Table`, which is used to
 derive a table to contain zero or more of a specific struct.
 
 ```rust
-# #[cfg(not(feature = "macros"))]
-# fn main() {}
-# #[cfg(feature = "macros")]
-# fn main() {
 use memtable::Table;
 
 #[derive(Table)]
@@ -113,7 +108,6 @@ assert_eq!(
     table.name_column().collect::<Vec<&String>>(),
     vec!["Fred Flintstone", "Wilma Flintstone"],
 );
-# }
 ```
 
 ## The License
