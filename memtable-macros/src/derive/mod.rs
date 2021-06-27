@@ -76,7 +76,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
         #[automatically_derived]
         #derive_attr
         #vis struct #table_name #ty_generics(
-            #root::MemTable<self::#table_data_name #ty_generics>
+            #root::MemTable<#table_data_name #ty_generics>
         ) #where_clause;
 
         #item_enum
@@ -151,8 +151,8 @@ fn make_table_impl(
                 &self,
                 name: &::std::primitive::str,
             ) -> ::std::option::Option<#root::iter::Column<
-                self::#table_data_name #ty_generics,
-                #root::MemTable<self::#table_data_name #ty_generics>,
+                #table_data_name #ty_generics,
+                #root::MemTable<#table_data_name #ty_generics>,
             >> {
                 match name {
                     #(
@@ -169,8 +169,8 @@ fn make_table_impl(
                 self,
                 name: &::std::primitive::str,
             ) -> ::std::option::Option<#root::iter::IntoColumn<
-                self::#table_data_name #ty_generics,
-                #root::MemTable<self::#table_data_name #ty_generics>,
+                #table_data_name #ty_generics,
+                #root::MemTable<#table_data_name #ty_generics>,
             >> {
                 match name {
                     #(
@@ -220,7 +220,7 @@ fn make_table_impl(
             ) {
                 let data = data.into();
                 #root::Table::insert_row(&mut self.0, row, ::std::vec![
-                    #(self::#table_data_name::#variant(data.#fields)),*
+                    #(#table_data_name::#variant(data.#fields)),*
                 ]);
             }
 
@@ -270,7 +270,7 @@ fn make_table_impl(
                     row: ::std::primitive::usize,
                 ) -> ::std::option::Option<&#variant_ty> {
                     #root::Table::get_cell(&self.0, row, #idx)
-                        .and_then(self::#table_data_name::#as_variant)
+                        .and_then(#table_data_name::#as_variant)
                 }
 
                 pub fn #get_mut_cell(
@@ -278,7 +278,7 @@ fn make_table_impl(
                     row: ::std::primitive::usize,
                 ) -> ::std::option::Option<&mut #variant_ty> {
                     #root::Table::get_mut_cell(&mut self.0, row, #idx)
-                        .and_then(self::#table_data_name::#as_mut_variant)
+                        .and_then(#table_data_name::#as_mut_variant)
                 }
 
                 /// Swaps the current cell value with the provided one, doing nothing
@@ -293,8 +293,8 @@ fn make_table_impl(
                             &mut self.0,
                             row,
                             #idx,
-                            self::#table_data_name::#variant(value.into()),
-                        ).and_then(self::#table_data_name::#into_variant)
+                            #table_data_name::#variant(value.into()),
+                        ).and_then(#table_data_name::#into_variant)
                     } else {
                         ::std::option::Option::None
                     }
@@ -304,7 +304,7 @@ fn make_table_impl(
                     let iter = #root::Table::column(&self.0, #idx);
                     ::std::iter::Iterator::filter_map(
                         iter,
-                        self::#table_data_name::#as_variant,
+                        #table_data_name::#as_variant,
                     )
                 }
 
@@ -312,7 +312,7 @@ fn make_table_impl(
                     let iter = #root::Table::into_column(self.0, #idx);
                     ::std::iter::Iterator::filter_map(
                         iter,
-                        self::#table_data_name::#into_variant,
+                        #table_data_name::#into_variant,
                     )
                 }
             )*
@@ -324,7 +324,7 @@ fn make_table_trait(root: &Path, name: &Ident, generics: &Generics, data_name: &
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     parse_quote! {
         impl #impl_generics #root::Table for #name #ty_generics #where_clause {
-            type Data = self::#data_name #ty_generics;
+            type Data = #data_name #ty_generics;
 
             fn row_cnt(&self) -> ::std::primitive::usize {
                 #root::Table::row_cnt(&self.0)
@@ -396,17 +396,17 @@ fn make_common_traits(
 
     quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::convert::AsRef<#root::MemTable<self::#data_name #ty_generics>>
+        impl #impl_generics ::std::convert::AsRef<#root::MemTable<#data_name #ty_generics>>
             for #name #ty_generics #where_clause
         {
-            fn as_ref(&self) -> &#root::MemTable<self::#data_name #ty_generics> {
+            fn as_ref(&self) -> &#root::MemTable<#data_name #ty_generics> {
                 &self.0
             }
         }
 
         #[automatically_derived]
         impl #impl_generics ::std::ops::Deref for #name #ty_generics #where_clause {
-            type Target = #root::MemTable<self::#data_name #ty_generics>;
+            type Target = #root::MemTable<#data_name #ty_generics>;
 
             fn deref(&self) -> &Self::Target {
                 &self.0
@@ -415,7 +415,7 @@ fn make_common_traits(
 
         #[automatically_derived]
         impl #impl_generics ::std::convert::From<#name #ty_generics>
-            for #root::MemTable<self::#data_name #ty_generics> #where_clause
+            for #root::MemTable<#data_name #ty_generics> #where_clause
         {
             fn from(x: #name #ty_generics) -> Self {
                 x.0
@@ -425,18 +425,18 @@ fn make_common_traits(
         #[automatically_derived]
         impl #impl_generics ::std::default::Default for #name #ty_generics #where_clause {
             fn default() -> Self {
-                Self(<#root::MemTable<self::#data_name #ty_generics> as ::std::default::Default>::default())
+                Self(<#root::MemTable<#data_name #ty_generics> as ::std::default::Default>::default())
             }
         }
 
         #[automatically_derived]
-        impl #impl_generics ::std::convert::TryFrom<#root::MemTable<self::#data_name #ty_generics>>
+        impl #impl_generics ::std::convert::TryFrom<#root::MemTable<#data_name #ty_generics>>
             for #name #ty_generics #where_clause
         {
             type Error = &'static ::std::primitive::str;
 
             fn try_from(
-                table: #root::MemTable<self::#data_name #ty_generics>,
+                table: #root::MemTable<#data_name #ty_generics>,
             ) -> ::std::result::Result<Self, Self::Error> {
                 for row in 0..#root::Table::row_cnt(&table) {
                     #(

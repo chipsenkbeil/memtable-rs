@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 
 /// Represents an iterator over some part of a table at the granularity
 /// of individual cells within the table
-pub trait CellIter<T>: std::iter::Iterator<Item = T> + Sized {
+pub trait CellIter<T>: Iterator<Item = T> + Sized {
     /// Returns the row of the next item returned by the iterator
     fn row(&self) -> usize;
 
