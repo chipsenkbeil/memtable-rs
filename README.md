@@ -24,6 +24,9 @@ memtable = "0.1"
 
 ## Usage
 
+Most often, you will want to import the [`prelude`] to bring in relevant
+traits and structs:
+
 ```rust
 use memtable::prelude::*;
 
