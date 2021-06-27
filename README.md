@@ -65,9 +65,12 @@ In the core library, you will find four primary tables:
 Alongside the essentials, the library also provides several features that
 provide extensions to the table arsenal:
 
-- **csv**: enables `FromCsv` and `ToCsv`
-- **cell**: enables `Cell2` and more up to `Cell26`
-- **serde**: enables *serde* support on all table implementations
+- **csv**: enables `FromCsv` (convert CSV into an inmemory table) and `ToCsv`
+  (convert an inmemory table to CSV)
+- **cell**: enables `Cell2` and more up to `Cell26`, which represent generic
+  enums that can be used as the data type for a table to enable multiple
+  data types within a table (e.g. `MemTable<Cell2<String, bool>>`)
+- **serde**: enables *serde* support on all table & cell implementations
 - **macros**: enables `Table` macro to derive new struct that implements the
   `Table` trait to be able to store some struct into a dedicated, inmemory table
 

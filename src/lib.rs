@@ -65,9 +65,14 @@
 //! Alongside the essentials, the library also provides several features that
 //! provide extensions to the table arsenal:
 //!
-//! - **csv**: enables [`exts::csv::FromCsv`] and [`exts::csv::ToCsv`]
-//! - **cell**: enables [`exts::cell::Cell2`] and more up to [`exts::cell::Cell26`]
-//! - **serde**: enables *serde* support on all table implementations
+//! - **csv**: enables CSV support and
+//!     - [`exts::csv::FromCsv`]: convert CSV into an inmemory table
+//!     - [`exts::csv::ToCsv`]: convert an inmemory table to CSV
+//! - **cell**: enables [`exts::cell::Cell2`] and more up to
+//!             [`exts::cell::Cell26`], which represent generic enums that can
+//!             be used as the data type for a table to enable multiple data
+//!             types within a table (e.g. `MemTable<Cell2<String, bool>>`)
+//! - **serde**: enables *serde* support on all table & cell implementations
 //! - **macros**: enables [`macro@Table`] macro to derive new struct that
 //!               implements the [`Table`] trait to be able to store some
 //!               struct into a dedicated, inmemory table
