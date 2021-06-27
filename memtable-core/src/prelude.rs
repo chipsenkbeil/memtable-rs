@@ -12,10 +12,21 @@
 //!
 //! * [`MemTable`] struct, which is the core table available from
 //!   this crate that acts as a table that can grow and shrink dynamically
+//! * [`FixedTable`] struct - available with Rust 1.51+ - provides a fixed-sized
+//!   counterpart to [`MemTable`] where the table is pre-allocated internally
+//!   using a 2D array
+//! * [`FixedRowMemTable`] struct, where the total rows is fixed and columns
+//!   can grow dynamically
+//! * [`FixedColumnMemTable`] struct, where the total columns is fixed and rows
+//!   can grow dynamically
 //! * [`Table`] trait, which provides the majority of the methods
 //!   available to operate on a table
 //! * [`iter::CellIter`] trait, which enables examining the row & column
 //!   positions of iterators over individual cells in a table as well as zip
 //!   an iterator with the position of each cell
 //!
-pub use crate::{impls::MemTable, iter::CellIter, Table};
+pub use crate::{
+    impls::{FixedColumnMemTable, FixedRowMemTable, FixedTable, MemTable},
+    iter::CellIter,
+    Table,
+};

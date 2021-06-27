@@ -2,6 +2,6 @@ mod mem;
 pub use mem::MemTable;
 
 mod fixed;
-pub use fixed::FixedTable;
+pub use fixed::{FixedColumnMemTable, FixedRowMemTable, FixedTable};
 
 mod utils;
