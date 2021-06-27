@@ -1,53 +1,119 @@
-# MemTable: Library to provide an inmemory table for use in Rust
+# MemTable - Inmemory tables for use in Rust
 
 [![Build Status][build_img]][build_lnk]
 [![Crates.io][crates_img]][crates_lnk]
 [![Docs.rs][doc_img]][doc_lnk]
 
-## Getting Started
+## Overview
 
-### Installation
+memtable provides a collection of table-oriented features for use inmemory.
 
-Import `memtable` into your project by adding the following to `Cargo.toml`:
+This crate acts as the aggregator of all subcrates such as `memtable-core`
+and `memtable-macros` and should be the only crate imported when using
+features from either.
+
+## Installation
 
 ```toml
 [dependencies]
 memtable = "0.1"
+
+# Optionally, include features like `macros`
+# memtable = { version = "0.1", features = ["macros"] }
 ```
 
-### Usage
+## Usage
+
+Most often, you will want to import the `prelude` to bring in relevant
+traits and structs:
+
+```rust
+use memtable::prelude::*;
+
+// Create a 2x3 (row x column) table of integers
+let mut table = FixedTable::from([
+    [1, 2, 3],
+    [4, 5, 6],
+]);
+
+// Examine one of the values, replace it, and examine again
+assert_eq!(table[(1, 2)], 6);
+table.insert_cell(1, 2, 999);
+assert_eq!(table[(1, 2)], 999);
+```
+
+## The Tables
+
+In the core library, you will find four primary tables:
+
+- `MemTable`: table with a dynamic capacity for rows & columns
+- `FixedTable`: table with a fixed capacity for rows & columns
+- `FixedRowTable`: table with a fixed capacity for rows & dynamic capacity for columns
+- `FixedColumnTable`: table with a dynamic capacity for rows & fixed capacity for columns
+
+## The Traits
+
+- `Table`: primary trait that exposes majority of common operations
+  to perform on tables
+- `CellIter`: common trait that table iterators focused on
+  individual cells that enables zipping with a cell's
+  position and getting the current row & column of
+  the iterator
+
+## The Extensions
+
+Alongside the essentials, the library also provides several features that
+provide extensions to the table arsenal:
+
+- **csv**: enables `FromCsv` (convert CSV into an inmemory table) and `ToCsv`
+  (convert an inmemory table to CSV)
+- **cell**: enables `Cell2` and more up to `Cell26`, which represent generic
+  enums that can be used as the data type for a table to enable multiple
+  data types within a table (e.g. `MemTable<Cell2<String, bool>>`)
+- **serde**: enables *serde* support on all table & cell implementations
+- **macros**: enables `Table` macro to derive new struct that implements the
+  `Table` trait to be able to store some struct into a dedicated, inmemory table
+
+## The Macros
+
+Currently, there is a singular macro, `Table`, which is used to
+derive a table to contain zero or more of a specific struct.
 
 ```rust
 use memtable::Table;
 
-let mut table = Table::new();
-table.push_row(vec![1, 2, 3]);
-table.push_row(vec![4, 5, 6]);
-
-for column in table.columns() {
-    for cell in column {
-        println!("{}", cell);
-    }
+#[derive(Table)]
+struct User {
+    name: String,
+    age: u8,
 }
 
-// Prints
-// 1
-// 4
-// 2
-// 5
-// 3
-// 6
+// Derives a new struct, User{Table}, that can contain instances of User
+// that are broken up into their individual fields
+let mut table = UserTable::new();
+
+// Inserting is straightforward as a User is considered a singular row
+table.push_row(User {
+    name: "Fred Flintstone".to_string(),
+    age: 51,
+});
+
+// You can also pass in a tuple of the fields in order of declaration
+table.push_row(("Wilma Flintstone".to_string(), 47));
+
+// Retrieval by row will provide the fields by ref as a tuple
+let (name, age) = table.row(0).unwrap();
+assert_eq!(name, "Fred Flintstone");
+assert_eq!(*age, 51);
+
+// Tables of course provide a variety of other methods to inspect data
+assert_eq!(
+    table.name_column().collect::<Vec<&String>>(),
+    vec!["Fred Flintstone", "Wilma Flintstone"],
+);
 ```
 
-See [crate documentation][doc_link] for more examples.
-
-### Features
-
-- **csv** - Enables ability to convert to/from a CSV using a `Table`.
-- **serde-1** - Enables ability to serialize `Table`, `Position`, and `CellX`
-  data structures.
-
-## License
+## The License
 
 <sup>
 Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
@@ -62,8 +128,8 @@ for inclusion in vimvar by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 </sub>
 
-[build_img]: https://github.com/chipsenkbeil/memtable/workflows/CI/badge.svg
-[build_lnk]: https://github.com/chipsenkbeil/memtable/actions
+[build_img]: https://github.com/chipsenkbeil/memtable-rs/workflows/CI/badge.svg
+[build_lnk]: https://github.com/chipsenkbeil/memtable-rs/actions
 [crates_img]: https://img.shields.io/crates/v/memtable.svg
 [crates_lnk]: https://crates.io/crates/memtable
 [doc_img]: https://docs.rs/memtable/badge.svg
