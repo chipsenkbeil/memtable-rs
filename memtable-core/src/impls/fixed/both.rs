@@ -6,8 +6,8 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-/// Represents an inmemory table containing rows & columns of some data `T`,
-/// capable of growing and shrinking in size dynamically
+/// Represents an inmemory table containing rows & columns of some data `T`
+/// with a fixed capacity across both rows and columns
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
 #[repr(transparent)]
