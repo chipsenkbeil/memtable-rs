@@ -1,7 +1,7 @@
 mod mem;
-pub use mem::MemTable;
+pub use mem::*;
 
-mod fixed;
-pub use fixed::{FixedColumnTable, FixedRowTable, FixedTable};
-
-mod utils;
+// #[cfg(feature = "sled")]
+// mod sled;
+// #[cfg(feature = "sled")]
+// pub use sled::*;

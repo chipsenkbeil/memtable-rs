@@ -1,4 +1,4 @@
-//! # The MemTable Prelude
+//! # The MemDynamicTable Prelude
 //!
 //! The memtable library comes with a variety of tools to help with building,
 //! parsing, and transforming tables. While these could be brought in via a
@@ -10,10 +10,10 @@
 //!
 //! The current version of the prelude re-exports the following:
 //!
-//! * [`MemTable`] struct, which is the core table available from
+//! * [`MemDynamicTable`] struct, which is the core table available from
 //!   this crate that acts as a table that can grow and shrink dynamically
 //! * [`FixedTable`] struct - available with Rust 1.51+ - provides a fixed-sized
-//!   counterpart to [`MemTable`] where the table is pre-allocated internally
+//!   counterpart to [`MemDynamicTable`] where the table is pre-allocated internally
 //!   using a 2D array
 //! * [`FixedRowTable`] struct, where the total rows is fixed and columns
 //!   can grow dynamically
@@ -26,7 +26,7 @@
 //!   an iterator with the position of each cell
 //!
 pub use crate::{
-    impls::{FixedColumnTable, FixedRowTable, FixedTable, MemTable},
+    impls::{FixedColumnTable, FixedRowTable, FixedTable, MemDynamicTable},
     iter::CellIter,
     Table,
 };

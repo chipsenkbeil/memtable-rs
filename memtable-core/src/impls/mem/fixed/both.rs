@@ -1,5 +1,4 @@
-use super::utils;
-use crate::{iter::*, Position, Table};
+use crate::{iter::*, utils, Position, Table};
 use std::{
     iter::FromIterator,
     mem,

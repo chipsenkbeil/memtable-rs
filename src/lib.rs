@@ -1,4 +1,4 @@
-//! # MemTable - Inmemory tables for use in Rust
+//! # MemDynamicTable - Inmemory tables for use in Rust
 //!
 //! [![Build Status][build_img]][build_lnk]
 //! [![Crates.io][crates_img]][crates_lnk]
@@ -46,7 +46,7 @@
 //!
 //! In the core library, you will find four primary tables:
 //!
-//! - [`MemTable`]: table with a dynamic capacity for rows & columns
+//! - [`MemDynamicTable`]: table with a dynamic capacity for rows & columns
 //! - [`FixedTable`]: table with a fixed capacity for rows & columns
 //! - [`FixedRowTable`]: table with a fixed capacity for rows & dynamic capacity for columns
 //! - [`FixedColumnTable`]: table with a dynamic capacity for rows & fixed capacity for columns
@@ -71,7 +71,7 @@
 //! - **cell**: enables [`exts::cell::Cell2`] and more up to
 //!             [`exts::cell::Cell26`], which represent generic enums that can
 //!             be used as the data type for a table to enable multiple data
-//!             types within a table (e.g. `MemTable<Cell2<String, bool>>`)
+//!             types within a table (e.g. `MemDynamicTable<Cell2<String, bool>>`)
 //! - **serde**: enables *serde* support on all table & cell implementations
 //! - **macros**: enables [`macro@Table`] macro to derive new struct that
 //!               implements the [`Table`] trait to be able to store some

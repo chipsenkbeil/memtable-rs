@@ -19,6 +19,7 @@ paste = "1.0.5"
 csv = { version = "1.1.6", optional = true }
 serde = { version = "1.0.117", features = ["derive"], optional = true }
 serde_with = { version = "1.9.4", optional = true }
+sled = { version = "0.34.6", optional = true }
 
 [dev-dependencies]
 tempfile = "3.2"

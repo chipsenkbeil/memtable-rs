@@ -25,6 +25,8 @@ pub use position::Position;
 /// this library
 pub mod prelude;
 
+mod utils;
+
 /// Represents an abstract table of data
 pub trait Table: Default {
     /// The type of data stored in individual cells within the table
@@ -38,7 +40,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.row_cnt(), 0);
     /// ```
     ///
@@ -46,7 +48,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     /// assert_eq!(table.row_cnt(), 2);
@@ -62,7 +64,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.col_cnt(), 0);
     /// ```
     ///
@@ -70,7 +72,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     /// assert_eq!(table.col_cnt(), 2);
@@ -100,7 +102,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(table.get_cell(0, 3).is_none());
     /// ```
@@ -109,7 +111,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert_eq!(table.get_cell(0, 2), Some(&3));
     /// ```
@@ -123,7 +125,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(table.get_mut_cell(0, 3).is_none());
     /// ```
@@ -132,7 +134,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
     /// *table.get_mut_cell(0, 2).unwrap() = 999;
@@ -149,7 +151,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
     /// assert!(table.insert_cell(0, 3, 999).is_none());
@@ -160,7 +162,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
     /// assert_eq!(table.insert_cell(0, 2, 999), Some(3));
@@ -177,7 +179,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
     /// assert_eq!(table.remove_cell(0, 0), Some(1));
@@ -193,7 +195,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.len(), 0);
     /// ```
     ///
@@ -201,7 +203,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     /// assert_eq!(table.len(), 6);
@@ -220,7 +222,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert!(table.is_empty());
     /// ```
     ///
@@ -228,7 +230,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     /// assert!(!table.is_empty());
@@ -246,7 +248,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.rows().len(), 0);
     /// ```
     ///
@@ -254,7 +256,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
@@ -276,7 +278,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.row(0).len(), 0);
     /// ```
     ///
@@ -284,7 +286,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
@@ -307,7 +309,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.into_row(0).len(), 0);
     /// ```
     ///
@@ -315,7 +317,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
@@ -338,7 +340,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.columns().len(), 0);
     /// ```
     ///
@@ -346,7 +348,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     ///
@@ -368,7 +370,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.column(0).len(), 0);
     /// ```
     ///
@@ -376,7 +378,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     ///
@@ -399,7 +401,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.into_column(0).len(), 0);
     /// ```
     ///
@@ -407,7 +409,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     ///
@@ -432,7 +434,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.cells().len(), 0);
     /// ```
     ///
@@ -440,7 +442,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
@@ -468,7 +470,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let table = MemTable::<usize>::new();
+    /// let table = MemDynamicTable::<usize>::new();
     /// assert_eq!(table.into_cells().len(), 0);
     /// ```
     ///
@@ -476,7 +478,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::<usize>::new();
+    /// let mut table = MemDynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
@@ -505,7 +507,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(!table.has_cell(0, 3));
     /// ```
@@ -514,7 +516,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(table.has_cell(0, 2));
     /// ```
@@ -529,7 +531,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
@@ -579,7 +581,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
@@ -607,7 +609,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
@@ -665,7 +667,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
@@ -696,7 +698,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     ///
@@ -746,7 +748,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     ///
@@ -774,7 +776,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     ///
@@ -832,7 +834,7 @@ pub trait Table: Default {
     ///
     /// ```
     /// # use memtable_core::prelude::*;
-    /// let mut table = MemTable::new();
+    /// let mut table = MemDynamicTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     ///
@@ -864,7 +866,7 @@ mod tests {
 
     // NOTE: For simplicity, we use our one concrete implementor of the table
     //       trait as our test table
-    type TestTable<T> = MemTable<T>;
+    type TestTable<T> = MemDynamicTable<T>;
 
     // For a couple of tests, we also provide a dummy table with no actual data
     #[derive(Default)]

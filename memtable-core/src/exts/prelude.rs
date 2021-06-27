@@ -1,4 +1,4 @@
-//! # The MemTable Extensions Prelude
+//! # The MemDynamicTable Extensions Prelude
 //!
 //! The memtable library comes with a variety of tools to help with building,
 //! parsing, and transforming tables. While these could be brought in via a

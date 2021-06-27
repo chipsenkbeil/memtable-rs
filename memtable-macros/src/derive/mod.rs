@@ -76,7 +76,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
         #[automatically_derived]
         #derive_attr
         #vis struct #table_name #ty_generics(
-            #root::MemTable<#table_data_name #ty_generics>
+            #root::MemDynamicTable<#table_data_name #ty_generics>
         ) #where_clause;
 
         #item_enum
@@ -152,7 +152,7 @@ fn make_table_impl(
                 name: &::std::primitive::str,
             ) -> ::std::option::Option<#root::iter::Column<
                 #table_data_name #ty_generics,
-                #root::MemTable<#table_data_name #ty_generics>,
+                #root::MemDynamicTable<#table_data_name #ty_generics>,
             >> {
                 match name {
                     #(
@@ -170,7 +170,7 @@ fn make_table_impl(
                 name: &::std::primitive::str,
             ) -> ::std::option::Option<#root::iter::IntoColumn<
                 #table_data_name #ty_generics,
-                #root::MemTable<#table_data_name #ty_generics>,
+                #root::MemDynamicTable<#table_data_name #ty_generics>,
             >> {
                 match name {
                     #(
@@ -396,17 +396,17 @@ fn make_common_traits(
 
     quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::convert::AsRef<#root::MemTable<#data_name #ty_generics>>
+        impl #impl_generics ::std::convert::AsRef<#root::MemDynamicTable<#data_name #ty_generics>>
             for #name #ty_generics #where_clause
         {
-            fn as_ref(&self) -> &#root::MemTable<#data_name #ty_generics> {
+            fn as_ref(&self) -> &#root::MemDynamicTable<#data_name #ty_generics> {
                 &self.0
             }
         }
 
         #[automatically_derived]
         impl #impl_generics ::std::ops::Deref for #name #ty_generics #where_clause {
-            type Target = #root::MemTable<#data_name #ty_generics>;
+            type Target = #root::MemDynamicTable<#data_name #ty_generics>;
 
             fn deref(&self) -> &Self::Target {
                 &self.0
@@ -415,7 +415,7 @@ fn make_common_traits(
 
         #[automatically_derived]
         impl #impl_generics ::std::convert::From<#name #ty_generics>
-            for #root::MemTable<#data_name #ty_generics> #where_clause
+            for #root::MemDynamicTable<#data_name #ty_generics> #where_clause
         {
             fn from(x: #name #ty_generics) -> Self {
                 x.0
@@ -425,18 +425,18 @@ fn make_common_traits(
         #[automatically_derived]
         impl #impl_generics ::std::default::Default for #name #ty_generics #where_clause {
             fn default() -> Self {
-                Self(<#root::MemTable<#data_name #ty_generics> as ::std::default::Default>::default())
+                Self(<#root::MemDynamicTable<#data_name #ty_generics> as ::std::default::Default>::default())
             }
         }
 
         #[automatically_derived]
-        impl #impl_generics ::std::convert::TryFrom<#root::MemTable<#data_name #ty_generics>>
+        impl #impl_generics ::std::convert::TryFrom<#root::MemDynamicTable<#data_name #ty_generics>>
             for #name #ty_generics #where_clause
         {
             type Error = &'static ::std::primitive::str;
 
             fn try_from(
-                table: #root::MemTable<#data_name #ty_generics>,
+                table: #root::MemDynamicTable<#data_name #ty_generics>,
             ) -> ::std::result::Result<Self, Self::Error> {
                 for row in 0..#root::Table::row_cnt(&table) {
                     #(
