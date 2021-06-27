@@ -4,6 +4,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.1.0] - 2021-06-27
+
 ### Added
 
 - `memtable` crate containing:
