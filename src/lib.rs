@@ -1,4 +1,10 @@
-//! # memtable
+//! # MemTable - Inmemory tables for use in Rust
+//!
+//! [![Build Status][build_img]][build_lnk]
+//! [![Crates.io][crates_img]][crates_lnk]
+//! [![Docs.rs][doc_img]][doc_lnk]
+//!
+//! ## Overview
 //!
 //! memtable provides a collection of table-oriented features for use inmemory.
 //!
@@ -106,6 +112,28 @@
 //! );
 //! # }
 //! ```
+//!
+//! ## The License
+//!
+//! <sup>
+//! Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
+//! 2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
+//! </sup>
+//!
+//! <br>
+//!
+//! <sub>
+//! Unless you explicitly state otherwise, any contribution intentionally submitted
+//! for inclusion in vimvar by you, as defined in the Apache-2.0 license, shall be
+//! dual licensed as above, without any additional terms or conditions.
+//! </sub>
+//!
+//! [build_img]: https://github.com/chipsenkbeil/memtable-rs/workflows/CI/badge.svg
+//! [build_lnk]: https://github.com/chipsenkbeil/memtable-rs/actions
+//! [crates_img]: https://img.shields.io/crates/v/memtable.svg
+//! [crates_lnk]: https://crates.io/crates/memtable
+//! [doc_img]: https://docs.rs/memtable/badge.svg
+//! [doc_lnk]: https://docs.rs/memtable
 
 pub use memtable_core::*;
 

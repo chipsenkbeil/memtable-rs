@@ -1,50 +1,84 @@
-# MemTable: Library to provide an inmemory table for use in Rust
+# MemTable - Inmemory tables for use in Rust
 
 [![Build Status][build_img]][build_lnk]
 [![Crates.io][crates_img]][crates_lnk]
 [![Docs.rs][doc_img]][doc_lnk]
 
-## Getting Started
+## Overview
 
-### Installation
+memtable provides a collection of table-oriented features for use inmemory.
 
-Import `memtable` into your project by adding the following to `Cargo.toml`:
+This crate acts as the aggregator of all subcrates such as `memtable-core`
+and `memtable-macros` and should be the only crate imported when using
+features from either.
+
+## Installation
 
 ```toml
 [dependencies]
 memtable = "0.1"
+
+# Optionally, include features like `macros`
+# memtable = { version = "0.1", features = ["macros"] }
 ```
 
-Minimum Rust version is currently **1.51.0**.
-
-### Usage
+## Usage
 
 ```rust
-use memtable::Table;
+use memtable::prelude::*;
 
-let mut table = Table::new();
-table.push_row(vec![1, 2, 3]);
-table.push_row(vec![4, 5, 6]);
+// Create a 2x3 (row x column) table of integers
+let mut table = FixedTable::from([
+    [1, 2, 3],
+    [4, 5, 6],
+]);
 
-for column in table.columns() {
-    for cell in column {
-        println!("{}", cell);
-    }
-}
-
-// Prints
-// 1
-// 4
-// 2
-// 5
-// 3
-// 6
+// Examine one of the values, replace it, and examine again
+assert_eq!(table[(1, 2)], 6);
+table.insert_cell(1, 2, 999);
+assert_eq!(table[(1, 2)], 999);
 ```
 
-If you'd like typed tables, you can generate a table for some data structure
-using a derive macro from the `macros` features:
+## The Tables
+
+In the core library, you will find four primary tables:
+
+- [`MemTable`]: table with a dynamic capacity for rows & columns
+- [`FixedTable`]: table with a fixed capacity for rows & columns
+- [`FixedRowTable`]: table with a fixed capacity for rows & dynamic capacity for columns
+- [`FixedColumnTable`]: table with a dynamic capacity for rows & fixed capacity for columns
+
+## The Traits
+
+- [`Table`]: primary trait that exposes majority of common operations to
+             perform on tables
+- [`iter::CellIter`]: common trait that table iterators focused on
+                      individual cells that enables zipping with a cell's
+                      position and getting the current row & column of
+                      the iterator
+
+## The Extensions
+
+Alongside the essentials, the library also provides several features that
+provide extensions to the table arsenal:
+
+- **csv**: enables [`exts::csv::FromCsv`] and [`exts::csv::ToCsv`]
+- **cell**: enables [`exts::cell::Cell2`] and more up to [`exts::cell::Cell26`]
+- **serde**: enables *serde* support on all table implementations
+- **macros**: enables [`macro@Table`] macro to derive new struct that
+              implements the [`Table`] trait to be able to store some
+              struct into a dedicated, inmemory table
+
+## The Macros
+
+Currently, there is a singular macro, [`macro@Table`], which is used to
+derive a table to contain zero or more of a specific struct.
 
 ```rust
+# #[cfg(not(feature = "macros"))]
+# fn main() {}
+# #[cfg(feature = "macros")]
+# fn main() {
 use memtable::Table;
 
 #[derive(Table)]
@@ -53,31 +87,33 @@ struct User {
     age: u8,
 }
 
-// Produces a table with typed columns based on above fields
+// Derives a new struct, User{Table}, that can contain instances of User
+// that are broken up into their individual fields
 let mut table = UserTable::new();
 
-// Instances of the above struct can be pushed to the table as individual rows
-table.push(User { name: "Fred Flintstone".to_string(), age: 51 });
+// Inserting is straightforward as a User is considered a singular row
+table.push_row(User {
+    name: "Fred Flintstone".to_string(),
+    age: 51,
+});
 
-// You can also push a tuple of data
+// You can also pass in a tuple of the fields in order of declaration
 table.push_row(("Wilma Flintstone".to_string(), 47));
 
-// Retrieving data comes in the form of an iterator over a data wrapper
-// called UserTableData
-let row: Vec<UserTableData> = table.row(0).collect();
-assert_eq!(row[0], "Fred Flintstone");
-assert_eq!(row[1], 51);
+// Retrieval by row will provide the fields by ref as a tuple
+let (name, age) = table.row(0).unwrap();
+assert_eq!(name, "Fred Flintstone");
+assert_eq!(*age, 51);
+
+// Tables of course provide a variety of other methods to inspect data
+assert_eq!(
+    table.name_column().collect::<Vec<&String>>(),
+    vec!["Fred Flintstone", "Wilma Flintstone"],
+);
+# }
 ```
 
-See [crate documentation][doc_link] for more examples.
-
-### Features
-
-- **csv** - Enables ability to convert to/from a CSV using a `Table`.
-- **serde-1** - Enables ability to serialize `Table`, `Position`, and `CellX`
-  data structures.
-
-## License
+## The License
 
 <sup>
 Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
