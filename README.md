@@ -15,6 +15,8 @@ Import `memtable` into your project by adding the following to `Cargo.toml`:
 memtable = "0.1"
 ```
 
+Minimum Rust version is currently **1.51.0**.
+
 ### Usage
 
 ```rust

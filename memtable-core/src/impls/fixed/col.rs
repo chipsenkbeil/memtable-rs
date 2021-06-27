@@ -189,9 +189,9 @@ mod tests {
         assert_eq!(table.row_cnt(), 0);
 
         let mut table: FixedColumnMemTable<usize, 4> = FixedColumnMemTable::new();
-        table.push_row([1, 2, 3, 4]);
-        table.push_row([1, 2, 3, 4]);
-        table.push_row([1, 2, 3, 4]);
+        table.push_row(vec![1, 2, 3, 4]);
+        table.push_row(vec![1, 2, 3, 4]);
+        table.push_row(vec![1, 2, 3, 4]);
         assert_eq!(table.row_cnt(), 3);
     }
 
