@@ -1,6 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 
-use super::default_array;
+use super::try_make_array;
 use serde::de;
 
 /// Workaround for https://github.com/serde-rs/serde/issues/1937
@@ -33,26 +33,17 @@ where
     where
         A: de::SeqAccess<'de>,
     {
-        let mut arr = default_array::<T, N>();
-        let mut cnt = 0;
-
-        for i in 0..N {
-            let next = seq.next_element::<T>()?;
-
-            // Assign the element to our array if we have it
-            if let Some(x) = next {
-                arr[i] = x;
-                cnt += 1;
-
-            // Otherwise, we have a bad sequence
+        let arr = try_make_array(|i| {
+            if let Some(x) = seq.next_element::<T>()? {
+                Ok(x)
             } else {
-                return Err(de::Error::invalid_length(cnt, &self));
+                Err(de::Error::invalid_length(i, &self))
             }
-        }
+        })?;
 
         // If we still have more elements, there's a problem
         if seq.next_element::<T>()?.is_some() {
-            Err(de::Error::invalid_length(cnt + 1, &self))
+            Err(de::Error::invalid_length(N + 1, &self))
 
         // Otherwise, we're good to go
         } else {

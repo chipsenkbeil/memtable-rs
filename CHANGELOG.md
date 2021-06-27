@@ -4,6 +4,16 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+
+- Updated `serde::Deserialize` of `FixedTable`, `FixedRowTable`, and
+  `FixedColumnTable` to allocate inline instead of creating an initial array
+  that is pre-allocated
+    - Internally added `utils::try_make_array` and `utils::try_make_table_array`
+      that allocate an array by creating one element at a time, supporting
+      failures to create new elements and automatically handling proper
+      dropping of a partially-created array
+
 ## [0.1.0] - 2021-06-27
 
 ### Added

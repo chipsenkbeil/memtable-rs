@@ -1,4 +1,5 @@
 #![cfg_attr(feature = "docs", feature(doc_cfg))]
+// #![no_std]
 //! # memtable-core
 //!
 //! Provides the core structs and traits for use in table manipulation.

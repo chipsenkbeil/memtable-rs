@@ -1,4 +1,4 @@
-use super::default_array;
+use super::try_make_array;
 use serde::de;
 
 /// Workaround for https://github.com/serde-rs/serde/issues/1937
@@ -34,33 +34,41 @@ where
         A: de::SeqAccess<'de>,
     {
         let mut list = Vec::new();
-        let mut total_cnt = 0;
-        let mut arr_cnt = 0;
 
-        while let Some(next) = seq.next_element::<T>()? {
-            // If starting a new array, we need to allocate
-            if arr_cnt == 0 {
-                list.push(default_array());
-            }
+        loop {
+            // Keep track of how far we are into the array
+            let mut item_cnt = 0;
+            let mut is_invalid_length = false;
 
-            let row = list.len() - 1;
-            list[row][arr_cnt] = next;
-            total_cnt += 1;
-            arr_cnt += 1;
+            // Attempt to allocate an array by taking N items in sequence
+            let res = try_make_array(|i| {
+                if let Some(next) = seq.next_element::<T>()? {
+                    item_cnt = i + 1;
+                    Ok(next)
+                } else {
+                    is_invalid_length = true;
+                    Err(de::Error::invalid_length(list.len() * N + item_cnt, &self))
+                }
+            });
 
-            if arr_cnt == N {
-                arr_cnt = 0;
+            match res {
+                // If we got an array, we add it to our list and keep going
+                Ok(arr) => {
+                    list.push(arr);
+                }
+
+                // If we had not made any progress into the array, this is
+                // actually a clean break and we're ready to proceed
+                Err(_) if item_cnt == 0 && is_invalid_length => break,
+
+                // Otherwise, if the error is not about length or we have
+                // progressed partially into the array, this is a legit error
+                // and we need to exit
+                Err(x) => return Err(x),
             }
         }
 
-        // If we didn't end on a divisible boundary, we have a problem
-        if total_cnt % N > 0 {
-            Err(de::Error::invalid_length(total_cnt, &self))
-
-        // Otherwise, we're good to go
-        } else {
-            Ok(list)
-        }
+        Ok(list)
     }
 }
 

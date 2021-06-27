@@ -1,6 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 
-use super::default_table_array;
+use super::try_make_table_array;
 use serde::de;
 
 /// Workaround for https://github.com/serde-rs/serde/issues/1937
@@ -35,28 +35,17 @@ where
     where
         A: de::SeqAccess<'de>,
     {
-        let mut table = default_table_array::<T, ROW, COL>();
-        let mut cnt = 0;
-
-        for row in 0..ROW {
-            for col in 0..COL {
-                let next = seq.next_element::<T>()?;
-
-                // Assign the element to our array if we have it
-                if let Some(x) = next {
-                    table[row][col] = x;
-                    cnt += 1;
-
-                // Otherwise, we have a bad sequence
-                } else {
-                    return Err(de::Error::invalid_length(cnt, &self));
-                }
+        let table = try_make_table_array(|row, col| {
+            if let Some(x) = seq.next_element::<T>()? {
+                Ok(x)
+            } else {
+                Err(de::Error::invalid_length(row * COL + col, &self))
             }
-        }
+        })?;
 
         // If we still have more elements, there's a problem
         if seq.next_element::<T>()?.is_some() {
-            Err(de::Error::invalid_length(cnt + 1, &self))
+            Err(de::Error::invalid_length((ROW * COL) + 1, &self))
 
         // Otherwise, we're good to go
         } else {
