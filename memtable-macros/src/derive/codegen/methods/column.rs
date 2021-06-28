@@ -1,4 +1,4 @@
-use super::TableMode;
+use super::{utils, TableMode};
 use syn::{parse_quote, ExprClosure, Ident, ItemFn, Path, Type};
 
 pub struct Args<'a> {
@@ -24,31 +24,24 @@ pub fn make(args: Args) -> ItemFn {
         into_variant,
     } = args;
 
-    let full_return_ty: Type = {
-        let inner_ty: Type = match mode {
-            TableMode::Ref => parse_quote!(&#variant_ty),
-            TableMode::Owned => parse_quote!(#variant_ty),
-            TableMode::Mixed => parse_quote!(#root::RefOrOwned<'_, #variant_ty>),
-        };
-        parse_quote!(::std::option::Option<#inner_ty>)
+    let iter_item_ty: Type = match mode {
+        TableMode::Ref => parse_quote!(&#variant_ty),
+        TableMode::Owned => parse_quote!(#variant_ty),
+        TableMode::Mixed => parse_quote!(#root::RefOrOwned<'_, #variant_ty>),
     };
 
+    let msg_1 = utils::using_ref_got_owned_str();
+    let msg_2 = utils::using_owned_got_ref_str();
     let map_closure: ExprClosure = match mode {
         TableMode::Ref => parse_quote! {
             |x| #table_data_name::#as_variant(
-                x.into_borrowed().expect(::std::concat!(
-                    "You are trying to use a ref model, "
-                    "but the data came back as owned!"
-                ))
-            ),
+                x.into_borrowed().expect(#msg_1)
+            )
         },
         TableMode::Owned => parse_quote! {
             |x| #table_data_name::#into_variant(
-                x.into_owned().expect(::std::concat!(
-                    "You are trying to use an owned model, "
-                    "but the data came back as borrowed!"
-                ))
-            ),
+                x.into_owned().expect(#msg_2)
+            )
         },
         TableMode::Mixed => parse_quote! {
             |x| match x {
@@ -63,7 +56,7 @@ pub fn make(args: Args) -> ItemFn {
     };
 
     parse_quote! {
-        pub fn #method_name(&self) -> impl ::std::iter::Iterator<Item = #full_return_ty> {
+        pub fn #method_name(&self) -> impl ::std::iter::Iterator<Item = #iter_item_ty> {
             let iter = #root::Table::column(&self.0, #idx);
             ::std::iter::Iterator::filter_map(iter, #map_closure)
         }

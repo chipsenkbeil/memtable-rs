@@ -42,16 +42,14 @@ fn should_support_retrieving_columns_by_name() {
     let column: Vec<bool> = table
         .column_by_name("field1")
         .unwrap()
-        .filter_map(MyRowTableData::as_field1)
-        .copied()
+        .filter_map(|x| x.as_field1().copied())
         .collect();
     assert_eq!(column, vec![false, true]);
 
     let column: Vec<usize> = table
         .column_by_name("field2")
         .unwrap()
-        .filter_map(MyRowTableData::as_field2)
-        .copied()
+        .filter_map(|x| x.as_field2().copied())
         .collect();
     assert_eq!(column, vec![123, 999]);
 

@@ -1,4 +1,4 @@
-use super::TableMode;
+use super::{utils, TableMode};
 use syn::{parse_quote, ExprClosure, Ident, ItemFn, Path, Type};
 
 pub struct Args<'a> {
@@ -33,22 +33,18 @@ pub fn make(args: Args) -> ItemFn {
         parse_quote!(::std::option::Option<#inner_ty>)
     };
 
+    let msg_1 = utils::using_ref_got_owned_str();
+    let msg_2 = utils::using_owned_got_ref_str();
     let map_closure: ExprClosure = match mode {
         TableMode::Ref => parse_quote! {
             |x| #table_data_name::#as_mut_variant(
-                x.into_borrowed().expect(::std::concat!(
-                    "You are trying to use a ref model, "
-                    "but the data came back as owned!"
-                ))
-            ),
+                x.into_borrowed().expect(#msg_1)
+            )
         },
         TableMode::Owned => parse_quote! {
             |x| #table_data_name::#into_variant(
-                x.into_owned().expect(::std::concat!(
-                    "You are trying to use an owned model, "
-                    "but the data came back as borrowed!"
-                ))
-            ),
+                x.into_owned().expect(#msg_2)
+            )
         },
         TableMode::Mixed => parse_quote! {
             |x| match x {
@@ -67,7 +63,7 @@ pub fn make(args: Args) -> ItemFn {
             &mut self,
             row: ::std::primitive::usize,
         ) -> #full_return_ty {
-            #root::Table::get_cell(&self.0, row, #idx).and_then(#map_closure)
+            #root::Table::get_mut_cell(&mut self.0, row, #idx).and_then(#map_closure)
         }
     }
 }
