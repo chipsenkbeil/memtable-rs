@@ -85,7 +85,7 @@ mod tests {
 
     // NOTE: For simplicity, we use our one concrete implementor of the table
     //       trait as our test table
-    type TestTable<T> = crate::MemDynamicTable<T>;
+    type TestTable<T> = crate::DynamicTable<T>;
 
     #[test]
     fn from_csv_str_should_convert_into_table() {

@@ -32,12 +32,12 @@ pub fn make(args: Args) -> ItemImpl {
     parse_quote! {
         #[automatically_derived]
         impl #impl_generics ::std::convert::TryFrom<
-            #root::MemDynamicTable<#table_data_name #ty_generics>
+            #root::DynamicTable<#table_data_name #ty_generics>
         > for #table_name #ty_generics #where_clause {
             type Error = &'static ::std::primitive::str;
 
             fn try_from(
-                table: #root::MemDynamicTable<#table_data_name #ty_generics>,
+                table: #root::DynamicTable<#table_data_name #ty_generics>,
             ) -> ::std::result::Result<Self, Self::Error> {
                 for row in 0..#root::Table::row_cnt(&table) {
                     #(

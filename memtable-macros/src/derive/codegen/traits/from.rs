@@ -20,7 +20,7 @@ pub fn make(args: Args) -> ItemImpl {
     parse_quote! {
         #[automatically_derived]
         impl #impl_generics ::std::convert::From<#table_name #ty_generics>
-            for #root::MemDynamicTable<#table_data_name #ty_generics> #where_clause
+            for #root::DynamicTable<#table_data_name #ty_generics> #where_clause
         {
             fn from(x: #table_name #ty_generics) -> Self {
                 x.0

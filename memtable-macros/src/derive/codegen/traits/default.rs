@@ -24,7 +24,7 @@ pub fn make(args: Args) -> ItemImpl {
         {
             fn default() -> Self {
                 Self(<
-                    #root::MemDynamicTable<#table_data_name #ty_generics> as
+                    #root::DynamicTable<#table_data_name #ty_generics> as
                     ::std::default::Default
                 >::default())
             }

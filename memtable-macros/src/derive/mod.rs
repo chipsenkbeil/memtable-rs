@@ -81,7 +81,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
         #[automatically_derived]
         #derive_attr
         #vis struct #table_name #ty_generics(
-            #root::MemDynamicTable<#table_data_name #ty_generics>
+            #root::DynamicTable<#table_data_name #ty_generics>
         ) #where_clause;
 
         #item_enum

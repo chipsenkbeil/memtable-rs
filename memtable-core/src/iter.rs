@@ -476,7 +476,7 @@ mod tests {
 
     // NOTE: For simplicity, we use our one concrete implementor of the table
     //       trait as our test table
-    type TestTable<T> = crate::MemDynamicTable<T>;
+    type TestTable<T> = crate::DynamicTable<T>;
 
     fn make_hashmap<T>(items: Vec<(usize, usize, T)>) -> HashMap<Position, T> {
         items

@@ -374,7 +374,7 @@ fn should_support_trying_to_convert_from_untyped_table() {
     // If data is in right columns and is not missing anything,
     // conversion should work fine
     {
-        let mut table = memtable::MemDynamicTable::new();
+        let mut table = memtable::DynamicTable::new();
         table.push_row(vec![
             MyRowTableData::Field1(false),
             MyRowTableData::Field2(123),
@@ -393,7 +393,7 @@ fn should_support_trying_to_convert_from_untyped_table() {
 
     // If data is not in right order in terms of column types, should fail
     {
-        let mut table = memtable::MemDynamicTable::new();
+        let mut table = memtable::DynamicTable::new();
         table.push_row(vec![
             MyRowTableData::Field2(123),
             MyRowTableData::Field1(false),
@@ -407,7 +407,7 @@ fn should_support_trying_to_convert_from_untyped_table() {
 
     // If data is missing in places, should fail
     {
-        let mut table = memtable::MemDynamicTable::new();
+        let mut table = memtable::DynamicTable::new();
         table.push_row(vec![
             MyRowTableData::Field1(false),
             MyRowTableData::Field2(123),

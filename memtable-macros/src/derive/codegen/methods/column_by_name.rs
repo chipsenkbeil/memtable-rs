@@ -27,7 +27,7 @@ pub fn make(args: Args) -> ItemFn {
             name: &::std::primitive::str,
         ) -> ::std::option::Option<#root::iter::Column<
             #table_data_name #ty_generics,
-            #root::MemDynamicTable<#table_data_name #ty_generics>,
+            #root::DynamicTable<#table_data_name #ty_generics>,
         >> {
             match name {
                 #(

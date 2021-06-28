@@ -19,10 +19,10 @@ pub fn make(args: Args) -> ItemImpl {
 
     parse_quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::convert::AsRef<#root::MemDynamicTable<#table_data_name #ty_generics>>
+        impl #impl_generics ::std::convert::AsRef<#root::DynamicTable<#table_data_name #ty_generics>>
             for #table_name #ty_generics #where_clause
         {
-            fn as_ref(&self) -> &#root::MemDynamicTable<#table_data_name #ty_generics> {
+            fn as_ref(&self) -> &#root::DynamicTable<#table_data_name #ty_generics> {
                 &self.0
             }
         }

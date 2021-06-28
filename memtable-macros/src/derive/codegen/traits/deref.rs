@@ -20,7 +20,7 @@ pub fn make(args: Args) -> ItemImpl {
     parse_quote! {
         #[automatically_derived]
         impl #impl_generics ::std::ops::Deref for #table_name #ty_generics #where_clause {
-            type Target = #root::MemDynamicTable<#table_data_name #ty_generics>;
+            type Target = #root::DynamicTable<#table_data_name #ty_generics>;
 
             fn deref(&self) -> &Self::Target {
                 &self.0
