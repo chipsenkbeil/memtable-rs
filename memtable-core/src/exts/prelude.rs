@@ -8,6 +8,11 @@
 //!
 //! # Prelude contents
 //!
+//! If the `sled` feature is enabled, the prelude re-exports the following:
+//!
+//! * [`sled::SledTable`] struct, which wraps around other tables and provides
+//!   persistent storage via the sled database
+//!
 //! If the `csv` feature is enabled, the prelude re-exports the following:
 //!
 //! * [`csv::ToCsv`] trait, which enables converting a
@@ -77,3 +82,8 @@ pub use crate::exts::cell::*;
 #[cfg_attr(feature = "docs", doc(cfg(csv)))]
 #[doc(inline)]
 pub use crate::exts::csv::{FromCsv, ToCsv};
+
+#[cfg(feature = "sled-1")]
+#[cfg_attr(feature = "docs", doc(cfg(sled)))]
+#[doc(inline)]
+pub use crate::exts::sled::SledTable;

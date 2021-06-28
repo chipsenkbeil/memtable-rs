@@ -101,7 +101,7 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
         }
     }
 
-    fn remove_cell(&mut self, row: usize, col: usize) -> Option<T> {
+    fn remove_cell(&mut self, row: usize, col: usize) -> Option<Self::Data> {
         self.insert_cell(row, col, T::default())
     }
 

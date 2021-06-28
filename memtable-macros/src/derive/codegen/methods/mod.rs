@@ -20,7 +20,6 @@ use syn::{Ident, ItemFn, Path, Type};
 
 pub fn make_get_cell_fns(
     root: &Path,
-    mode: TableMode,
     table_data_name: &Ident,
     columns: &[&TableColumn],
 ) -> Vec<ItemFn> {
@@ -33,19 +32,16 @@ pub fn make_get_cell_fns(
                 idx,
                 variant_ty,
                 as_variant,
-                into_variant,
                 ..
             } = args;
 
             get_cell::make(get_cell::Args {
                 root,
-                mode,
                 idx,
                 method_name: &method_name,
                 variant_ty,
                 table_data_name,
                 as_variant,
-                into_variant,
             })
         },
     )
@@ -53,7 +49,6 @@ pub fn make_get_cell_fns(
 
 pub fn make_get_mut_cell_fns(
     root: &Path,
-    mode: TableMode,
     table_data_name: &Ident,
     columns: &[&TableColumn],
 ) -> Vec<ItemFn> {
@@ -66,19 +61,16 @@ pub fn make_get_mut_cell_fns(
                 idx,
                 variant_ty,
                 as_mut_variant,
-                into_variant,
                 ..
             } = args;
 
             get_mut_cell::make(get_mut_cell::Args {
                 root,
-                mode,
                 idx,
                 method_name: &method_name,
                 variant_ty,
                 table_data_name,
                 as_mut_variant,
-                into_variant,
             })
         },
     )
@@ -86,7 +78,6 @@ pub fn make_get_mut_cell_fns(
 
 pub fn make_column_fns(
     root: &Path,
-    mode: TableMode,
     table_data_name: &Ident,
     columns: &[&TableColumn],
 ) -> Vec<ItemFn> {
@@ -99,19 +90,16 @@ pub fn make_column_fns(
                 idx,
                 variant_ty,
                 as_variant,
-                into_variant,
                 ..
             } = args;
 
             column::make(column::Args {
                 root,
-                mode,
                 idx,
                 method_name: &method_name,
                 variant_ty,
                 table_data_name,
                 as_variant,
-                into_variant,
             })
         },
     )

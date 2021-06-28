@@ -102,7 +102,7 @@ impl<T> Table for DynamicTable<T> {
         self.cells.insert(Position { row, col }, value)
     }
 
-    fn remove_cell(&mut self, row: usize, col: usize) -> Option<T> {
+    fn remove_cell(&mut self, row: usize, col: usize) -> Option<Self::Data> {
         self.cells.remove(&Position { row, col })
     }
 

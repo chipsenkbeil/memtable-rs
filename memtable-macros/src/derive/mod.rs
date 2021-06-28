@@ -72,6 +72,14 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
         columns: &columns,
     });
 
+    let inner_table_ty = codegen::utils::make_inner_table_type(
+        &root,
+        table.mode,
+        &table_data_name,
+        &table.generics,
+        columns.len(),
+    );
+
     let derive_attr = table
         .derive
         .filter(|list| !list.is_empty())
@@ -80,9 +88,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
     quote! {
         #[automatically_derived]
         #derive_attr
-        #vis struct #table_name #ty_generics(
-            #root::DynamicTable<#table_data_name #ty_generics>
-        ) #where_clause;
+        #vis struct #table_name #ty_generics(#inner_table_ty) #where_clause;
 
         #item_enum
         #item_enum_impl

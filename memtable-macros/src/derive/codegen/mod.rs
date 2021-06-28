@@ -34,6 +34,7 @@ pub fn make_table_impl(args: TableImplArgs) -> ItemImpl {
     let column_names_fn = methods::column_names::make(methods::column_names::Args { columns });
     let column_by_name_fn = methods::column_by_name::make(methods::column_by_name::Args {
         root,
+        mode,
         generics,
         table_data_name,
         columns,
@@ -41,20 +42,13 @@ pub fn make_table_impl(args: TableImplArgs) -> ItemImpl {
     let into_column_by_name_fn =
         methods::into_column_by_name::make(methods::into_column_by_name::Args {
             root,
+            mode,
             generics,
             table_data_name,
             columns,
         });
-    let rows_fn = methods::rows::make(methods::rows::Args {
-        root,
-        mode,
-        columns,
-    });
-    let row_fn = methods::row::make(methods::row::Args {
-        root,
-        mode,
-        columns,
-    });
+    let rows_fn = methods::rows::make(methods::rows::Args { root, columns });
+    let row_fn = methods::row::make(methods::row::Args { root, columns });
     let insert_row_fn = methods::insert_row::make(methods::insert_row::Args {
         root,
         generics,
@@ -79,10 +73,10 @@ pub fn make_table_impl(args: TableImplArgs) -> ItemImpl {
         origin_struct_name,
     });
 
-    let get_cell_fns = methods::make_get_cell_fns(root, mode, table_data_name, columns);
-    let get_mut_cell_fns = methods::make_get_mut_cell_fns(root, mode, table_data_name, columns);
+    let get_cell_fns = methods::make_get_cell_fns(root, table_data_name, columns);
+    let get_mut_cell_fns = methods::make_get_mut_cell_fns(root, table_data_name, columns);
     let replace_cell_fns = methods::make_replace_cell_fns(root, table_data_name, columns);
-    let column_fns = methods::make_column_fns(root, mode, table_data_name, columns);
+    let column_fns = methods::make_column_fns(root, table_data_name, columns);
     let into_column_fns = methods::make_into_column_fns(root, table_data_name, columns);
 
     parse_quote! {

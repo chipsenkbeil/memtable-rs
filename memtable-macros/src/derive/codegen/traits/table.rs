@@ -33,7 +33,7 @@ pub fn make(args: Args) -> ItemImpl {
                 &self,
                 row: ::std::primitive::usize,
                 col: ::std::primitive::usize,
-            ) -> ::std::option::Option<#root::RefOrOwned<'_, Self::Data>> {
+            ) -> ::std::option::Option<&Self::Data> {
                 #root::Table::get_cell(&self.0, row, col)
             }
 
@@ -41,7 +41,7 @@ pub fn make(args: Args) -> ItemImpl {
                 &mut self,
                 row: ::std::primitive::usize,
                 col: ::std::primitive::usize,
-            ) -> ::std::option::Option<#root::MutRefOrOwned<'_, Self::Data>> {
+            ) -> ::std::option::Option<&mut Self::Data> {
                 #root::Table::get_mut_cell(&mut self.0, row, col)
             }
 

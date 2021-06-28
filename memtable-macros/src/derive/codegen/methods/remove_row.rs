@@ -28,8 +28,9 @@ pub fn make(args: Args) -> ItemFn {
             &mut self,
             row: ::std::primitive::usize,
         ) -> ::std::option::Option<#origin_struct_name #ty_generics> {
-            if row < #root::Table::row_cnt(&self.0) {
-                let mut row = #root::Table::remove_row(&mut self.0, row);
+            #root::Table::remove_row(&mut self.0, row).and_then(|row| {
+                // Build an iterator so we can consume the row values
+                let mut iter = ::std::iter::IntoIterator::into_iter(row);
 
                 // NOTE: Because we don't allow access to the underlying table
                 //       at the level where the cell enum can be changed to
@@ -39,13 +40,13 @@ pub fn make(args: Args) -> ItemFn {
                 //       types underneath.
                 ::std::option::Option::Some(#origin_struct_name {
                     #(
-                        #fields: ::std::iter::Iterator::next(&mut row)
-                            .expect(#bug_msg).#into_variant().expect(#bug_msg)
+                        #fields: ::std::iter::Iterator::next(&mut iter)
+                            .expect(#bug_msg)
+                            .#into_variant()
+                            .expect(#bug_msg)
                     ),*
                 })
-            } else {
-                ::std::option::Option::None
-            }
+            })
         }
     }
 }

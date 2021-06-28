@@ -1,19 +1,14 @@
-use super::{utils, TableColumn, TableMode};
+use super::{utils, TableColumn};
 use quote::format_ident;
 use syn::{parse_quote, Ident, ItemFn, Path, Type};
 
 pub struct Args<'a> {
     pub root: &'a Path,
-    pub mode: TableMode,
     pub columns: &'a [&'a TableColumn],
 }
 
 pub fn make(args: Args) -> ItemFn {
-    let Args {
-        root,
-        mode,
-        columns,
-    } = args;
+    let Args { root, columns } = args;
 
     let variant_tys = utils::make_variant_types(columns);
     let get_cell_fns: Vec<Ident> = utils::make_snake_idents(columns)
@@ -21,28 +16,13 @@ pub fn make(args: Args) -> ItemFn {
         .map(|name| format_ident!("get_{}", name))
         .collect();
 
+    // (type1, type2, ...)
+    let option_inner_ty: Type = parse_quote!((#(&#variant_tys),*));
+
     let bug_msg = utils::bug_str();
 
-    // (type1, type2, ...)
-    let option_inner_ty: Type = {
-        match mode {
-            TableMode::Ref => parse_quote!((#(&#variant_tys),*)),
-            TableMode::Owned => parse_quote!((#(#variant_tys),*)),
-            TableMode::Mixed => parse_quote!((#(#root::RefOrOwned<'_, #variant_tys>),*)),
-        }
-    };
-
-    let doc = format!(
-        "Returns a tuple containing {}",
-        match mode {
-            TableMode::Ref => "refs to each column's data within a row",
-            TableMode::Owned => "each column's data within a row",
-            TableMode::Mixed => "some mixture of refs & owned data for each column within a row",
-        }
-    );
-
     parse_quote! {
-        #[doc = #doc]
+        /// Returns a tuple containing refs to each column's data within a row
         pub fn row(
             &self,
             row: ::std::primitive::usize,

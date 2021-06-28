@@ -79,19 +79,22 @@ pub struct TableDataAttr {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, FromMeta)]
 #[darling(rename_all = "snake_case")]
 pub enum TableMode {
-    /// Table always produces references to underlying data
-    Ref,
+    /// Generated table leverages a dynamic table underneath
+    Dynamic,
 
-    /// Table always produces owned copies of underlying data
-    Owned,
+    /// Generated table leverages a fixed-column table underneath, where the
+    /// column count matches the total number of fields from the struct
+    FixedColumn,
 
-    /// Table may produce a mixture of referenced and owned data
-    Mixed,
+    /// Generated table leverages a fixed row & column table underneath, where
+    /// the column count matches the total number of fields from the struct
+    /// and the row count is specified manually by the end user
+    Fixed { rows: usize },
 }
 
 impl Default for TableMode {
     fn default() -> Self {
-        Self::Ref
+        Self::Dynamic
     }
 }
 

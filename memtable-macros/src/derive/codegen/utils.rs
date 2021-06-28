@@ -1,8 +1,34 @@
-use super::TableColumn;
+use super::{TableColumn, TableMode};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_quote, Ident, LitStr, Type};
+use syn::{parse_quote, Generics, Ident, LitInt, LitStr, Path, Type};
 use voca_rs::case;
+
+pub fn make_inner_table_type(
+    root: &Path,
+    mode: TableMode,
+    table_data_name: &Ident,
+    generics: &Generics,
+    col_cnt: usize,
+) -> Type {
+    let (_, ty_generics, _) = generics.split_for_impl();
+    let col_cnt: LitInt = parse_quote!(#col_cnt);
+
+    match mode {
+        TableMode::Dynamic => {
+            parse_quote!(#root::DynamicTable<#table_data_name #ty_generics>)
+        }
+        TableMode::FixedColumn => {
+            let params = generics.params.iter();
+            parse_quote!(#root::FixedColumnTable<#table_data_name<#(#params),* #col_cnt>>)
+        }
+        TableMode::Fixed { rows } => {
+            let params = generics.params.iter();
+            let row_cnt: LitInt = parse_quote!(#rows);
+            parse_quote!(#root::FixedTable<#table_data_name<#(#params),* #row_cnt, #col_cnt>>)
+        }
+    }
+}
 
 pub fn make_variant_idents(columns: &[&TableColumn]) -> Vec<Ident> {
     columns
@@ -122,26 +148,6 @@ pub fn bug_str() -> LitStr {
     let msg = concat!(
         "BUG: Typed row missing cell data! This should never happen! ",
         "Please report this to https://github.com/chipsenkbeil/memtable-rs/issues",
-    );
-
-    parse_quote!(#msg)
-}
-
-#[inline]
-pub fn using_ref_got_owned_str() -> LitStr {
-    let msg = concat!(
-        "You are trying to use a ref model, ",
-        "but the data came back as owned!"
-    );
-
-    parse_quote!(#msg)
-}
-
-#[inline]
-pub fn using_owned_got_ref_str() -> LitStr {
-    let msg = concat!(
-        "You are trying to use an owned model, ",
-        "but the data came back as borrowed!"
     );
 
     parse_quote!(#msg)

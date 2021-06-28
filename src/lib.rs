@@ -60,7 +60,7 @@
 //!                       position and getting the current row & column of
 //!                       the iterator
 //!
-//! ## The Extensions
+//! ## The Extra Features
 //!
 //! Alongside the essentials, the library also provides several features that
 //! provide extensions to the table arsenal:
@@ -73,6 +73,8 @@
 //!             be used as the data type for a table to enable multiple data
 //!             types within a table (e.g. `DynamicTable<Cell2<String, bool>>`)
 //! - **serde**: enables *serde* support on all table & cell implementations
+//! - **sled**:  enables [`exts::sled::SledTable`], which provides persistent
+//!              storage on top of other tables via the sled database
 //! - **macros**: enables [`macro@Table`] macro to derive new struct that
 //!               implements the [`Table`] trait to be able to store some
 //!               struct into a dedicated, inmemory table
