@@ -1,7 +1,7 @@
 use crate::Table;
-use ::sled::{Config, Db, Tree};
+use ::sled::Tree;
 use serde::{Deserialize, Serialize};
-use std::{convert::TryFrom, path::Path, sync::Mutex};
+use std::{convert::TryFrom, sync::Mutex};
 
 /// Total errors to keep around, dropping older ones after reaching limit
 const ERROR_BUFFER_SIZE: usize = 10;
@@ -12,8 +12,7 @@ where
     D: Serialize + for<'de> Deserialize<'de>,
     T: Table<Data = D> + Default,
 {
-    db: Db,
-    metadata: Tree,
+    tree: Tree,
     table: T,
     errors: Mutex<Vec<utils::Error>>,
 }
@@ -23,44 +22,53 @@ where
     D: Serialize + for<'de> Deserialize<'de>,
     T: Table<Data = D> + Default,
 {
-    /// Creates/reopens a sled database and populates an inmemory table with it
-    pub fn new<P: AsRef<Path>>(path: P) -> utils::Result<Self> {
-        let config = Config::default().path(path);
-        Self::new_from_config(&config)
-    }
-
-    /// Creates/reopens a sled database using the provided config and
-    /// populates an inmemory table with it
-    pub fn new_from_config(config: &Config) -> utils::Result<Self> {
-        let db = config.open()?;
-        let metadata = db.open_tree(utils::metadata_name())?;
-        let table = T::default();
-        let errors = Mutex::new(Vec::new());
-
-        let mut this = Self {
-            db,
-            metadata,
-            table,
-            errors,
-        };
-
-        this.reload()?;
-
-        Ok(this)
-    }
-
-    /// Reloads the data in the table from sled
-    pub fn reload(&mut self) -> utils::Result<()> {
-        let (row_cnt, col_cnt) = utils::row_and_col_cnts(&self.metadata)?;
+    /// Creates a new sled table using the provided tree and factory function
+    /// to create the inmemory table that takes in the current row and column
+    /// capacities
+    pub fn new(tree: Tree, new_table: impl FnOnce(usize, usize) -> T) -> utils::Result<Self> {
+        // First, figure out our capacities if they have already been set
+        // within the tree
+        let (row_cnt, col_cnt) = utils::row_and_col_cnts(&tree)?;
         let row_cnt = row_cnt.unwrap_or_default();
         let col_cnt = col_cnt.unwrap_or_default();
 
-        self.table.set_row_capacity(row_cnt);
-        self.table.set_column_capacity(col_cnt);
+        // Second, create our table instance and explicitly set the capacities
+        let mut table = new_table(row_cnt, col_cnt);
+        table.set_row_capacity(row_cnt);
+        table.set_column_capacity(col_cnt);
+
+        // Third, create our instance
+        let mut this = Self {
+            tree,
+            table,
+            errors: Mutex::new(Vec::new()),
+        };
+
+        // Fourth, load our data into the table (but don't pull capacities again)
+        this.reload(false)?;
+
+        // Fifth, return our new instance
+        Ok(this)
+    }
+
+    /// Reloads the data in the table from sled, optionally refreshing the
+    /// row and column capacities first
+    pub fn reload(&mut self, refresh_capacities: bool) -> utils::Result<()> {
+        let (row_cnt, col_cnt) = if refresh_capacities {
+            let (row_cnt, col_cnt) = utils::row_and_col_cnts(&self.tree)?;
+            let row_cnt = row_cnt.unwrap_or_default();
+            let col_cnt = col_cnt.unwrap_or_default();
+
+            self.table.set_row_capacity(row_cnt);
+            self.table.set_column_capacity(col_cnt);
+            (row_cnt, col_cnt)
+        } else {
+            (self.row_cnt(), self.col_cnt())
+        };
 
         for row in 0..row_cnt {
             for col in 0..col_cnt {
-                let value = utils::load_cell(&self.db, row, col)?;
+                let value = utils::load_cell(&self.tree, row, col)?;
                 if let Some(value) = value {
                     self.table.insert_cell(row, col, value);
                 }
@@ -98,15 +106,15 @@ where
         use crate::iter::CellIter;
 
         if rewrite {
-            utils::set_row_cnt(&self.metadata, self.table.row_cnt())?;
-            utils::set_col_cnt(&self.metadata, self.table.col_cnt())?;
+            utils::set_row_cnt(&self.tree, self.table.row_cnt())?;
+            utils::set_col_cnt(&self.tree, self.table.col_cnt())?;
 
             for (pos, cell) in self.table.cells().zip_with_position() {
-                let _ = utils::insert_cell(&self.db, pos.row, pos.col, cell)?;
+                let _ = utils::insert_cell(&self.tree, pos.row, pos.col, cell)?;
             }
         }
 
-        let cnt = self.db.flush()?;
+        let cnt = self.tree.flush()?;
         Ok(cnt)
     }
 }
@@ -135,14 +143,14 @@ where
     }
 
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data> {
-        if let Err(x) = utils::insert_cell::<Self::Data>(&self.db, row, col, &value) {
+        if let Err(x) = utils::insert_cell::<Self::Data>(&self.tree, row, col, &value) {
             self.push_error(x);
         }
 
         let value = self.table.insert_cell(row, col, value);
 
         if let Err(x) =
-            utils::set_row_and_col_cnts(&self.metadata, self.table.row_cnt(), self.table.col_cnt())
+            utils::set_row_and_col_cnts(&self.tree, self.table.row_cnt(), self.table.col_cnt())
         {
             self.push_error(x);
         }
@@ -151,14 +159,14 @@ where
     }
 
     fn remove_cell(&mut self, row: usize, col: usize) -> Option<Self::Data> {
-        if let Err(x) = utils::remove_cell::<Self::Data>(&self.db, row, col) {
+        if let Err(x) = utils::remove_cell::<Self::Data>(&self.tree, row, col) {
             self.push_error(x);
         }
 
         let value = self.table.remove_cell(row, col);
 
         if let Err(x) =
-            utils::set_row_and_col_cnts(&self.metadata, self.table.row_cnt(), self.table.col_cnt())
+            utils::set_row_and_col_cnts(&self.tree, self.table.row_cnt(), self.table.col_cnt())
         {
             self.push_error(x);
         }
@@ -167,7 +175,7 @@ where
     }
 
     fn set_row_capacity(&mut self, capacity: usize) {
-        if let Err(x) = utils::set_row_cnt(&self.metadata, capacity) {
+        if let Err(x) = utils::set_row_cnt(&self.tree, capacity) {
             self.push_error(x);
         }
 
@@ -175,7 +183,7 @@ where
     }
 
     fn set_column_capacity(&mut self, capacity: usize) {
-        if let Err(x) = utils::set_col_cnt(&self.metadata, capacity) {
+        if let Err(x) = utils::set_col_cnt(&self.tree, capacity) {
             self.push_error(x);
         }
 
@@ -183,31 +191,18 @@ where
     }
 }
 
-impl<D, T> TryFrom<Db> for SledTable<D, T>
+impl<D, T> TryFrom<Tree> for SledTable<D, T>
 where
     D: Serialize + for<'de> Deserialize<'de>,
     T: Table<Data = D> + Default,
 {
     type Error = utils::Error;
 
-    /// Tries to create a database wrapper using sled, by loading a metadata
-    /// collection and then attempting to populate the inmemory database
-    /// using sled's current data
-    fn try_from(db: Db) -> Result<Self, Self::Error> {
-        let metadata = db.open_tree(utils::metadata_name())?;
-        let table = T::default();
-        let errors = Mutex::new(Vec::new());
-
-        let mut this = Self {
-            db,
-            metadata,
-            table,
-            errors,
-        };
-
-        this.reload()?;
-
-        Ok(this)
+    /// Tries to create a database wrapper using sled by mapping a tree's
+    /// data to that of a table; will create a new instance of the inmemory
+    /// table using its [`Default`] implementation
+    fn try_from(tree: Tree) -> Result<Self, Self::Error> {
+        Self::new(tree, |_, _| T::default())
     }
 }
 
@@ -219,7 +214,6 @@ mod utils {
     use serde::{Deserialize, Serialize};
     use std::{fmt, io};
 
-    const METADATA_COLLECTION: &str = "memtable_metadata";
     const ROW_CNT_KEY: &str = "row_cnt";
     const COL_CNT_KEY: &str = "col_cnt";
 
@@ -265,10 +259,6 @@ mod utils {
     }
 
     impl std::error::Error for Error {}
-
-    pub const fn metadata_name() -> &'static str {
-        METADATA_COLLECTION
-    }
 
     pub fn row_and_col_cnts(tree: &Tree) -> Result<(Option<usize>, Option<usize>)> {
         tree.transaction(|tx_db| {
@@ -379,19 +369,24 @@ mod utils {
 mod tests {
     use super::*;
     use crate::DynamicTable;
+    use sled::Config;
 
     #[test]
     fn should_persist_across_creations() {
-        // NOTE: Will be deleted once dropped; uses Arc<...> to track internally,
-        //       so we can clone without issue
         let db = Config::default()
             .temporary(true)
             .open()
             .expect("Failed to create sled db");
 
+        // NOTE: Will be deleted once dropped; uses Arc<...> to track internally,
+        //       so we can clone this without issue
+        let tree = db
+            .open_tree("test_table")
+            .expect("Failed to create test_table tree");
+
         // First, load a clean table and populate it
         {
-            let mut table = SledTable::<_, DynamicTable<usize>>::try_from(db.clone())
+            let mut table = SledTable::<_, DynamicTable<usize>>::try_from(tree.clone())
                 .expect("Failed to load table");
             assert!(table.is_empty(), "Table populated unexpectedly");
 
@@ -416,7 +411,7 @@ mod tests {
         // Second, reload the table, which sled should populate
         {
             let mut table =
-                SledTable::<_, DynamicTable<usize>>::try_from(db).expect("Failed to load table");
+                SledTable::<_, DynamicTable<usize>>::try_from(tree).expect("Failed to load table");
             assert!(!table.is_empty(), "Table not populated on second run");
 
             assert_eq!(table.pop_row().expect("Missing row 2"), vec![5, 6, 7, 8]);
