@@ -123,6 +123,34 @@ macro_rules! impl_peq {
                     PartialEq::eq(&**self, &*other)
                 }
             }
+
+            impl<'a, T> PartialEq<Option<$type>> for RefOrOwned<'a, T>
+            where
+                T: PartialEq<$type>,
+            {
+                #[inline]
+                fn eq(&self, other: &Option<$type>) -> bool {
+                    if let Some(x) = other.as_ref() {
+                        PartialEq::eq(&**self, x)
+                    } else {
+                        false
+                    }
+                }
+            }
+
+            impl<'a, T, E> PartialEq<Result<$type, E>> for RefOrOwned<'a, T>
+            where
+                T: PartialEq<$type>,
+            {
+                #[inline]
+                fn eq(&self, other: &Result<$type, E>) -> bool {
+                    if let Ok(x) = other.as_ref() {
+                        PartialEq::eq(&**self, x)
+                    } else {
+                        false
+                    }
+                }
+            }
         }
     };
 }

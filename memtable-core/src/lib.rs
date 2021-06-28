@@ -450,12 +450,12 @@ pub trait Table: Default {
     /// table.push_row(vec![4, 5, 6]);
     ///
     /// let mut cells = table.cells();
-    /// assert_eq!(cells.next(), Some(&1));
-    /// assert_eq!(cells.next(), Some(&2));
-    /// assert_eq!(cells.next(), Some(&3));
-    /// assert_eq!(cells.next(), Some(&4));
-    /// assert_eq!(cells.next(), Some(&5));
-    /// assert_eq!(cells.next(), Some(&6));
+    /// assert_eq!(cells.next().unwrap(), 1);
+    /// assert_eq!(cells.next().unwrap(), 2);
+    /// assert_eq!(cells.next().unwrap(), 3);
+    /// assert_eq!(cells.next().unwrap(), 4);
+    /// assert_eq!(cells.next().unwrap(), 5);
+    /// assert_eq!(cells.next().unwrap(), 6);
     /// assert_eq!(cells.next(), None);
     /// ```
     ///
