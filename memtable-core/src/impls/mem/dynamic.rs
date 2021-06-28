@@ -1,4 +1,4 @@
-use crate::{iter::*, MutRefOrOwned, Position, RefOrOwned, Table};
+use crate::{iter::*, Position, Table};
 use std::{
     collections::HashMap,
     iter::FromIterator,
@@ -54,20 +54,8 @@ impl<T> MemDynamicTable<T> {
     }
 
     /// Returns an iterator over the cells and their positions within the table
-    pub fn iter(&self) -> ZipPosition<RefOrOwned<'_, T>, Cells<T, MemDynamicTable<T>>> {
+    pub fn iter(&self) -> ZipPosition<&T, Cells<T, MemDynamicTable<T>>> {
         self.into_iter()
-    }
-
-    /// Internal method to get cell that supports directly returning a reference
-    /// since inmemory tables have access in that manner
-    fn _get_cell(&self, row: usize, col: usize) -> Option<&T> {
-        self.cells.get(&Position { row, col })
-    }
-
-    /// Internal method to get cell that supports directly returning a mutable
-    /// reference since inmemory tables have access in that manner
-    fn _get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut T> {
-        self.cells.get_mut(&Position { row, col })
     }
 }
 
@@ -92,12 +80,12 @@ impl<T> Table for MemDynamicTable<T> {
         self.col_cnt
     }
 
-    fn get_cell(&self, row: usize, col: usize) -> Option<RefOrOwned<'_, Self::Data>> {
-        self._get_cell(row, col).map(RefOrOwned::from)
+    fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
+        self.cells.get(&Position { row, col })
     }
 
-    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<MutRefOrOwned<'_, Self::Data>> {
-        self._get_mut_cell(row, col).map(MutRefOrOwned::from)
+    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
+        self.cells.get_mut(&Position { row, col })
     }
 
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data> {
@@ -136,8 +124,8 @@ impl<T> Table for MemDynamicTable<T> {
 }
 
 impl<'a, T> IntoIterator for &'a MemDynamicTable<T> {
-    type Item = (Position, RefOrOwned<'a, T>);
-    type IntoIter = ZipPosition<RefOrOwned<'a, T>, Cells<'a, T, MemDynamicTable<T>>>;
+    type Item = (Position, &'a T);
+    type IntoIter = ZipPosition<&'a T, Cells<'a, T, MemDynamicTable<T>>>;
 
     /// Converts into an iterator over the table's cells' positions and values
     fn into_iter(self) -> Self::IntoIter {
@@ -196,7 +184,7 @@ impl<T> Index<(usize, usize)> for MemDynamicTable<T> {
     /// Indexes into a table by a specific row and column, returning a
     /// reference to the cell if it exists, otherwise panicking
     fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
-        self._get_cell(row, col)
+        self.get_cell(row, col)
             .expect("Row/Column index out of range")
     }
 }
@@ -205,7 +193,7 @@ impl<T> IndexMut<(usize, usize)> for MemDynamicTable<T> {
     /// Indexes into a table by a specific row and column, returning a mutable
     /// reference to the cell if it exists, otherwise panicking
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
-        self._get_mut_cell(row, col)
+        self.get_mut_cell(row, col)
             .expect("Row/Column index out of range")
     }
 }

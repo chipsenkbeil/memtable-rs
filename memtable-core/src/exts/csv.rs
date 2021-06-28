@@ -1,4 +1,4 @@
-use crate::{RefOrOwned, Table};
+use crate::Table;
 use ::csv as csv_lib;
 use std::{fs::File, io, path::Path};
 
@@ -23,7 +23,7 @@ pub trait FromCsv {
     }
 }
 
-impl<T: Table<Data = String>> FromCsv for T {
+impl<T: Table<Data = String> + Default> FromCsv for T {
     type Output = T;
 
     fn from_csv<R: io::Read>(reader: R) -> io::Result<Self::Output> {
@@ -70,16 +70,7 @@ impl<D: AsRef<[u8]>, T: Table<Data = D>> ToCsv for T {
             .has_headers(false)
             .from_writer(writer);
         for row in self.rows() {
-            // NOTE: Cannot use write_record with a row as RefOrOwned<D> does
-            //       not directly translate to AsRef<[u8]> and instead we have
-            //       to pull out each cell's data
-            for cell in row {
-                match cell {
-                    RefOrOwned::Borrowed(x) => wtr.write_field(x)?,
-                    RefOrOwned::Owned(x) => wtr.write_field(x)?,
-                }
-            }
-            wtr.write_record(None::<&[u8]>)?;
+            wtr.write_record(row)?;
         }
 
         Ok(())

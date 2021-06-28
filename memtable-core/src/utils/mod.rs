@@ -1,9 +1,7 @@
 mod make;
-mod owned;
 
 pub use make::array::{default_array, make_array, try_make_array};
 pub use make::table_array::{default_table_array, make_table_array, try_make_table_array};
-pub use owned::{MutRefOrOwned, RefOrOwned};
 
 #[cfg(feature = "serde-1")]
 mod ser;

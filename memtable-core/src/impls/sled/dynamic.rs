@@ -1,57 +1,38 @@
 use crate::{iter::*, Position, Table};
+use serde::{Deserialize, Serialize};
+use sled::Db;
 use std::{
     collections::HashMap,
     iter::FromIterator,
     ops::{Index, IndexMut},
 };
 
-/// Represents an inmemory table containing rows & columns of some data `T`,
+/// Represents a sled table containing rows & columns of some data `T`,
 /// capable of growing and shrinking in size dynamically
-#[cfg_attr(feature = "serde-1", serde_with::serde_as)]
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
-pub struct SledDynamicTable<T> {
-    /// Represents the table's data (cells) as a mapping between a cell's
-    /// position and its actual content (private)
-    #[cfg_attr(feature = "serde-1", serde_as("Vec<(_, _)>"))]
-    cells: HashMap<Position, T>,
+#[derive(Clone, Debug)]
+pub struct SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
+    /// Main sled database
+    db: Db,
 
-    /// Represents the total rows contained in the table based on the largest
-    /// row position found
-    row_cnt: usize,
-
-    /// Represents the total columns contained in the table based on the largest
-    /// column position found
-    col_cnt: usize,
+    /// Used to hold on to some database contents in-memory while performing
+    /// operations like reads & writes
+    cache: HashMap<Position, T>,
 }
 
-impl<T> SledDynamicTable<T> {
+impl<T> SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
     /// Creates a new, empty table
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Removes all cells contained within the table that are outside the
-    /// current row & column capacity
-    pub fn truncate(&mut self) {
-        let row_cnt = self.row_cnt;
-        let col_cnt = self.col_cnt;
-        self.cells
-            .retain(|pos, _| pos.row < row_cnt && pos.col < col_cnt);
-    }
-
-    /// Shrinks the table's row & column capacity to fit where cells exist
-    pub fn shrink_to_fit(&mut self) {
-        let (max_row, max_col) = self.cells.keys().fold((0, 0), |acc, pos| {
-            (
-                std::cmp::max(acc.0, pos.row + 1),
-                std::cmp::max(acc.1, pos.col + 1),
-            )
-        });
-
-        self.row_cnt = max_row;
-        self.col_cnt = max_col;
-    }
+    /// Writes all changes out to sled database
+    pub fn flush(&mut self) {}
 
     /// Returns an iterator over the cells and their positions within the table
     pub fn iter(&self) -> ZipPosition<&T, Cells<T, SledDynamicTable<T>>> {
@@ -59,7 +40,10 @@ impl<T> SledDynamicTable<T> {
     }
 }
 
-impl<T> Default for SledDynamicTable<T> {
+impl<T> Default for SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
     fn default() -> Self {
         Self {
             cells: HashMap::new(),
@@ -69,7 +53,10 @@ impl<T> Default for SledDynamicTable<T> {
     }
 }
 
-impl<T> Table for SledDynamicTable<T> {
+impl<T> Table for SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
     type Data = T;
 
     fn row_cnt(&self) -> usize {
@@ -123,7 +110,10 @@ impl<T> Table for SledDynamicTable<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a SledDynamicTable<T> {
+impl<'a, T> IntoIterator for &'a SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
     type Item = (Position, &'a T);
     type IntoIter = ZipPosition<&'a T, Cells<'a, T, SledDynamicTable<T>>>;
 
@@ -133,7 +123,10 @@ impl<'a, T> IntoIterator for &'a SledDynamicTable<T> {
     }
 }
 
-impl<T> IntoIterator for SledDynamicTable<T> {
+impl<T> IntoIterator for SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
     type Item = (Position, T);
     type IntoIter = ZipPosition<T, IntoCells<T, SledDynamicTable<T>>>;
 
@@ -143,7 +136,10 @@ impl<T> IntoIterator for SledDynamicTable<T> {
     }
 }
 
-impl<T, V: Into<T>> FromIterator<(usize, usize, V)> for SledDynamicTable<T> {
+impl<T, V: Into<T>> FromIterator<(usize, usize, V)> for SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
     /// Produces a table from the provided iterator of (row, col, value)
     fn from_iter<I: IntoIterator<Item = (usize, usize, V)>>(iter: I) -> Self {
         let cells: HashMap<Position, T> = iter
@@ -154,7 +150,10 @@ impl<T, V: Into<T>> FromIterator<(usize, usize, V)> for SledDynamicTable<T> {
     }
 }
 
-impl<T, V: Into<T>> FromIterator<(Position, V)> for SledDynamicTable<T> {
+impl<T, V: Into<T>> FromIterator<(Position, V)> for SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
     /// Produces a table from the provided iterator of (position, value)
     fn from_iter<I: IntoIterator<Item = (Position, V)>>(iter: I) -> Self {
         let cells: HashMap<Position, T> = iter.into_iter().map(|(p, x)| (p, x.into())).collect();
@@ -162,7 +161,10 @@ impl<T, V: Into<T>> FromIterator<(Position, V)> for SledDynamicTable<T> {
     }
 }
 
-impl<T> From<HashMap<Position, T>> for SledDynamicTable<T> {
+impl<T> From<HashMap<Position, T>> for SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
     /// Creates a new table from the given hashmap of cells
     fn from(cells: HashMap<Position, T>) -> Self {
         let mut table = Self {
@@ -178,7 +180,10 @@ impl<T> From<HashMap<Position, T>> for SledDynamicTable<T> {
     }
 }
 
-impl<T> Index<(usize, usize)> for SledDynamicTable<T> {
+impl<T> Index<(usize, usize)> for SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
     type Output = T;
 
     /// Indexes into a table by a specific row and column, returning a
@@ -189,7 +194,10 @@ impl<T> Index<(usize, usize)> for SledDynamicTable<T> {
     }
 }
 
-impl<T> IndexMut<(usize, usize)> for SledDynamicTable<T> {
+impl<T> IndexMut<(usize, usize)> for SledDynamicTable<T>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
     /// Indexes into a table by a specific row and column, returning a mutable
     /// reference to the cell if it exists, otherwise panicking
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {

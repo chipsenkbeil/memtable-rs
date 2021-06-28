@@ -24,15 +24,9 @@
 //! * [`iter::CellIter`] trait, which enables examining the row & column
 //!   positions of iterators over individual cells in a table as well as zip
 //!   an iterator with the position of each cell
-//! * [`RefOrOwned`] struct, which acts as a bridge between retrieving data
-//!   from a table with the intention of getting a reference (some may only
-//!   support new data such as `sled`)
-//! * [`MutRefOrOwned`] struct, which acts as a bridge between retrieving data
-//!   from a table with the intention of getting a mutable reference (some may
-//!   only support new data such as `sled`)
 //!
 pub use crate::{
     impls::{MemDynamicTable, MemFixedColumnTable, MemFixedRowTable, MemFixedTable},
     iter::CellIter,
-    MutRefOrOwned, RefOrOwned, Table,
+    Table,
 };

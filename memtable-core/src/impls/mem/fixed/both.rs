@@ -1,4 +1,4 @@
-use crate::{iter::*, utils, MutRefOrOwned, Position, RefOrOwned, Table};
+use crate::{iter::*, utils, Position, Table};
 use std::{
     iter::FromIterator,
     mem,
@@ -32,28 +32,8 @@ impl<T: Default, const ROW: usize, const COL: usize> MemFixedTable<T, ROW, COL> 
     }
 
     /// Returns an iterator over the cells and their positions within the table
-    pub fn iter(&self) -> ZipPosition<RefOrOwned<'_, T>, Cells<T, MemFixedTable<T, ROW, COL>>> {
+    pub fn iter(&self) -> ZipPosition<&T, Cells<T, MemFixedTable<T, ROW, COL>>> {
         self.into_iter()
-    }
-
-    /// Internal method to get cell that supports directly returning a reference
-    /// since inmemory tables have access in that manner
-    fn _get_cell(&self, row: usize, col: usize) -> Option<&T> {
-        if row < ROW && col < COL {
-            Some(&self.0[row][col])
-        } else {
-            None
-        }
-    }
-
-    /// Internal method to get cell that supports directly returning a mutable
-    /// reference since inmemory tables have access in that manner
-    fn _get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut T> {
-        if row < ROW && col < COL {
-            Some(&mut self.0[row][col])
-        } else {
-            None
-        }
     }
 }
 
@@ -74,12 +54,20 @@ impl<T: Default, const ROW: usize, const COL: usize> Table for MemFixedTable<T, 
         COL
     }
 
-    fn get_cell(&self, row: usize, col: usize) -> Option<RefOrOwned<'_, Self::Data>> {
-        self._get_cell(row, col).map(RefOrOwned::from)
+    fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
+        if row < ROW && col < COL {
+            Some(&self.0[row][col])
+        } else {
+            None
+        }
     }
 
-    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<MutRefOrOwned<'_, Self::Data>> {
-        self._get_mut_cell(row, col).map(MutRefOrOwned::from)
+    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
+        if row < ROW && col < COL {
+            Some(&mut self.0[row][col])
+        } else {
+            None
+        }
     }
 
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data> {
@@ -106,8 +94,8 @@ impl<T: Default, const ROW: usize, const COL: usize> From<[[T; COL]; ROW]>
 impl<'a, T: Default, const ROW: usize, const COL: usize> IntoIterator
     for &'a MemFixedTable<T, ROW, COL>
 {
-    type Item = (Position, RefOrOwned<'a, T>);
-    type IntoIter = ZipPosition<RefOrOwned<'a, T>, Cells<'a, T, MemFixedTable<T, ROW, COL>>>;
+    type Item = (Position, &'a T);
+    type IntoIter = ZipPosition<&'a T, Cells<'a, T, MemFixedTable<T, ROW, COL>>>;
 
     /// Converts into an iterator over the table's cells' positions and values
     fn into_iter(self) -> Self::IntoIter {
@@ -161,7 +149,7 @@ impl<T: Default, const ROW: usize, const COL: usize> Index<(usize, usize)>
     /// Indexes into a table by a specific row and column, returning a
     /// reference to the cell if it exists, otherwise panicking
     fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
-        self._get_cell(row, col)
+        self.get_cell(row, col)
             .expect("Row/Column index out of range")
     }
 }
@@ -172,7 +160,7 @@ impl<T: Default, const ROW: usize, const COL: usize> IndexMut<(usize, usize)>
     /// Indexes into a table by a specific row and column, returning a mutable
     /// reference to the cell if it exists, otherwise panicking
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
-        self._get_mut_cell(row, col)
+        self.get_mut_cell(row, col)
             .expect("Row/Column index out of range")
     }
 }
