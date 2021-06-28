@@ -27,6 +27,9 @@ pub mod prelude;
 
 mod utils;
 
+#[doc(inline)]
+pub use utils::{MutRefOrOwned, RefOrOwned};
+
 /// Represents an abstract table of data
 pub trait Table: Default {
     /// The type of data stored in individual cells within the table
@@ -115,7 +118,7 @@ pub trait Table: Default {
     /// table.push_row(vec![1, 2, 3]);
     /// assert_eq!(table.get_cell(0, 2), Some(&3));
     /// ```
-    fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data>;
+    fn get_cell(&self, row: usize, col: usize) -> Option<RefOrOwned<'_, Self::Data>>;
 
     /// Returns mut reference to the cell found at the specified row and column
     ///
@@ -140,7 +143,7 @@ pub trait Table: Default {
     /// *table.get_mut_cell(0, 2).unwrap() = 999;
     /// assert_eq!(table.get_cell(0, 2), Some(&999));
     /// ```
-    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data>;
+    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<MutRefOrOwned<'_, Self::Data>>;
 
     /// Replaces the given value into the cell of the table at the specified
     /// row and column, returning the previous value contained in the cell
@@ -901,10 +904,14 @@ mod tests {
         fn col_cnt(&self) -> usize {
             self.col_cnt
         }
-        fn get_cell(&self, _row: usize, _col: usize) -> Option<&Self::Data> {
+        fn get_cell(&self, _row: usize, _col: usize) -> Option<RefOrOwned<'_, Self::Data>> {
             None
         }
-        fn get_mut_cell(&mut self, _row: usize, _col: usize) -> Option<&mut Self::Data> {
+        fn get_mut_cell(
+            &mut self,
+            _row: usize,
+            _col: usize,
+        ) -> Option<MutRefOrOwned<'_, Self::Data>> {
             None
         }
         fn insert_cell(

@@ -3,6 +3,7 @@ use darling::{
     util::{PathList, SpannedValue},
     FromDeriveInput, FromField, FromMeta,
 };
+use quote::format_ident;
 use syn::{Generics, Ident, Type, Visibility};
 
 /// Information about a table's Rust struct
@@ -33,6 +34,32 @@ pub struct StructTable {
     /// Derives to forward to derived table
     #[darling(default)]
     pub derive: Option<PathList>,
+
+    /// Mode to use when generating the table
+    #[darling(default)]
+    pub mode: TableMode,
+}
+
+impl StructTable {
+    pub fn to_table_name(&self) -> Ident {
+        self.name
+            .as_ref()
+            .map(|x| format_ident!("{}", x))
+            .unwrap_or_else(|| format_ident!("{}Table", &self.ident))
+    }
+
+    pub fn to_table_data_name(&self) -> Ident {
+        self.data_attr
+            .as_ref()
+            .and_then(|x| x.name.as_ref())
+            .map(|x| format_ident!("{}", x))
+            .unwrap_or_else(|| format_ident!("{}TableData", &self.ident))
+    }
+
+    pub fn columns(&self) -> Vec<&TableColumn> {
+        let x = self.data.as_ref().take_struct();
+        x.unwrap().fields
+    }
 }
 
 /// Information for a data(...) attribute
@@ -46,6 +73,26 @@ pub struct TableDataAttr {
     /// Derives to forward to derived table data
     #[darling(default)]
     pub derive: Option<PathList>,
+}
+
+/// Represents the mode to use when generating code for a table
+#[derive(Copy, Clone, Debug, PartialEq, Eq, FromMeta)]
+#[darling(rename_all = "snake_case")]
+pub enum TableMode {
+    /// Table always produces references to underlying data
+    Ref,
+
+    /// Table always produces owned copies of underlying data
+    Owned,
+
+    /// Table may produce a mixture of referenced and owned data
+    Mixed,
+}
+
+impl Default for TableMode {
+    fn default() -> Self {
+        Self::Ref
+    }
 }
 
 /// Information for a field of a struct deriving table

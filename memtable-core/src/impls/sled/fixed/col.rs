@@ -1,4 +1,4 @@
-use crate::{iter::*, utils, MutRefOrOwned, Position, RefOrOwned, Table};
+use crate::{iter::*, utils, Position, Table};
 use std::{
     iter::FromIterator,
     mem,
@@ -45,28 +45,8 @@ impl<T: Default, const COL: usize> MemFixedColumnTable<T, COL> {
     }
 
     /// Returns an iterator over the cells and their positions within the table
-    pub fn iter(&self) -> ZipPosition<RefOrOwned<'_, T>, Cells<T, MemFixedColumnTable<T, COL>>> {
+    pub fn iter(&self) -> ZipPosition<&T, Cells<T, MemFixedColumnTable<T, COL>>> {
         self.into_iter()
-    }
-
-    /// Internal method to get cell that supports directly returning a reference
-    /// since inmemory tables have access in that manner
-    fn _get_cell(&self, row: usize, col: usize) -> Option<&T> {
-        if row < self.row_cnt && col < COL {
-            Some(&self.cells[row][col])
-        } else {
-            None
-        }
-    }
-
-    /// Internal method to get cell that supports directly returning a mutable
-    /// reference since inmemory tables have access in that manner
-    fn _get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut T> {
-        if row < self.row_cnt && col < COL {
-            Some(&mut self.cells[row][col])
-        } else {
-            None
-        }
     }
 }
 
@@ -81,12 +61,20 @@ impl<T: Default, const COL: usize> Table for MemFixedColumnTable<T, COL> {
         COL
     }
 
-    fn get_cell(&self, row: usize, col: usize) -> Option<RefOrOwned<Self::Data>> {
-        self._get_cell(row, col).map(RefOrOwned::from)
+    fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
+        if row < self.row_cnt && col < COL {
+            Some(&self.cells[row][col])
+        } else {
+            None
+        }
     }
 
-    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<MutRefOrOwned<Self::Data>> {
-        self._get_mut_cell(row, col).map(MutRefOrOwned::from)
+    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
+        if row < self.row_cnt && col < COL {
+            Some(&mut self.cells[row][col])
+        } else {
+            None
+        }
     }
 
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data> {
@@ -123,8 +111,8 @@ impl<T: Default, const COL: usize> From<Vec<[T; COL]>> for MemFixedColumnTable<T
 }
 
 impl<'a, T: Default, const COL: usize> IntoIterator for &'a MemFixedColumnTable<T, COL> {
-    type Item = (Position, RefOrOwned<'a, T>);
-    type IntoIter = ZipPosition<RefOrOwned<'a, T>, Cells<'a, T, MemFixedColumnTable<T, COL>>>;
+    type Item = (Position, &'a T);
+    type IntoIter = ZipPosition<&'a T, Cells<'a, T, MemFixedColumnTable<T, COL>>>;
 
     /// Converts into an iterator over the table's cells' positions and values
     fn into_iter(self) -> Self::IntoIter {
@@ -176,7 +164,7 @@ impl<T: Default, const COL: usize> Index<(usize, usize)> for MemFixedColumnTable
     /// Indexes into a table by a specific row and column, returning a
     /// reference to the cell if it exists, otherwise panicking
     fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
-        self._get_cell(row, col)
+        self.get_cell(row, col)
             .expect("Row/Column index out of range")
     }
 }
@@ -185,7 +173,7 @@ impl<T: Default, const COL: usize> IndexMut<(usize, usize)> for MemFixedColumnTa
     /// Indexes into a table by a specific row and column, returning a mutable
     /// reference to the cell if it exists, otherwise panicking
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
-        self._get_mut_cell(row, col)
+        self.get_mut_cell(row, col)
             .expect("Row/Column index out of range")
     }
 }
@@ -218,10 +206,10 @@ mod tests {
     #[test]
     fn get_cell_should_return_ref_to_cell_at_location() {
         let table = MemFixedColumnTable::from(vec![["a", "b"], ["c", "d"]]);
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"a"));
-        assert_eq!(table.get_cell(0, 1).as_deref(), Some(&"b"));
-        assert_eq!(table.get_cell(1, 0).as_deref(), Some(&"c"));
-        assert_eq!(table.get_cell(1, 1).as_deref(), Some(&"d"));
+        assert_eq!(table.get_cell(0, 0), Some(&"a"));
+        assert_eq!(table.get_cell(0, 1), Some(&"b"));
+        assert_eq!(table.get_cell(1, 0), Some(&"c"));
+        assert_eq!(table.get_cell(1, 1), Some(&"d"));
         assert_eq!(table.get_cell(1, 2), None);
     }
 
@@ -229,7 +217,7 @@ mod tests {
     fn get_mut_cell_should_return_mut_ref_to_cell_at_location() {
         let mut table = MemFixedColumnTable::from(vec![["a", "b"], ["c", "d"]]);
         *table.get_mut_cell(0, 0).unwrap() = "e";
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"e"));
+        assert_eq!(table.get_cell(0, 0), Some(&"e"));
     }
 
     #[test]
@@ -238,7 +226,7 @@ mod tests {
 
         assert_eq!(table.insert_cell(0, 0, 123), Some(usize::default()));
         assert_eq!(table.insert_cell(0, 0, 999), Some(123));
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&999))
+        assert_eq!(table.get_cell(0, 0), Some(&999))
     }
 
     #[test]

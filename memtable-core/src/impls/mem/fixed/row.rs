@@ -1,4 +1,4 @@
-use crate::{iter::*, utils, Position, Table};
+use crate::{iter::*, utils, MutRefOrOwned, Position, RefOrOwned, Table};
 use std::{
     iter::FromIterator,
     mem,
@@ -10,7 +10,7 @@ use std::{
 /// columns
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
-pub struct FixedRowTable<T: Default, const ROW: usize> {
+pub struct MemFixedRowTable<T: Default, const ROW: usize> {
     #[cfg_attr(
         feature = "serde-1",
         serde(
@@ -27,7 +27,7 @@ pub struct FixedRowTable<T: Default, const ROW: usize> {
     col_cnt: usize,
 }
 
-impl<T: Default, const ROW: usize> FixedRowTable<T, ROW> {
+impl<T: Default, const ROW: usize> MemFixedRowTable<T, ROW> {
     /// Creates a new, empty table
     pub fn new() -> Self {
         Self::default()
@@ -47,12 +47,32 @@ impl<T: Default, const ROW: usize> FixedRowTable<T, ROW> {
     }
 
     /// Returns an iterator over the cells and their positions within the table
-    pub fn iter(&self) -> ZipPosition<&T, Cells<T, FixedRowTable<T, ROW>>> {
+    pub fn iter(&self) -> ZipPosition<RefOrOwned<'_, T>, Cells<T, MemFixedRowTable<T, ROW>>> {
         self.into_iter()
+    }
+
+    /// Internal method to get cell that supports directly returning a reference
+    /// since inmemory tables have access in that manner
+    fn _get_cell(&self, row: usize, col: usize) -> Option<&T> {
+        if row < ROW && col < self.col_cnt {
+            Some(&self.cells[row][col])
+        } else {
+            None
+        }
+    }
+
+    /// Internal method to get cell that supports directly returning a mutable
+    /// reference since inmemory tables have access in that manner
+    fn _get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut T> {
+        if row < ROW && col < self.col_cnt {
+            Some(&mut self.cells[row][col])
+        } else {
+            None
+        }
     }
 }
 
-impl<T: Default, const ROW: usize> Default for FixedRowTable<T, ROW> {
+impl<T: Default, const ROW: usize> Default for MemFixedRowTable<T, ROW> {
     fn default() -> Self {
         Self {
             cells: utils::default_array::<Vec<T>, ROW>(),
@@ -61,7 +81,7 @@ impl<T: Default, const ROW: usize> Default for FixedRowTable<T, ROW> {
     }
 }
 
-impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
+impl<T: Default, const ROW: usize> Table for MemFixedRowTable<T, ROW> {
     type Data = T;
 
     fn row_cnt(&self) -> usize {
@@ -72,20 +92,12 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
         self.col_cnt
     }
 
-    fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
-        if row < ROW && col < self.col_cnt {
-            Some(&self.cells[row][col])
-        } else {
-            None
-        }
+    fn get_cell(&self, row: usize, col: usize) -> Option<RefOrOwned<'_, Self::Data>> {
+        self._get_cell(row, col).map(RefOrOwned::from)
     }
 
-    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
-        if row < ROW && col < self.col_cnt {
-            Some(&mut self.cells[row][col])
-        } else {
-            None
-        }
+    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<MutRefOrOwned<'_, Self::Data>> {
+        self._get_mut_cell(row, col).map(MutRefOrOwned::from)
     }
 
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data> {
@@ -114,16 +126,16 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
     }
 }
 
-impl<T: Default, const ROW: usize> From<[Vec<T>; ROW]> for FixedRowTable<T, ROW> {
+impl<T: Default, const ROW: usize> From<[Vec<T>; ROW]> for MemFixedRowTable<T, ROW> {
     fn from(cells: [Vec<T>; ROW]) -> Self {
         let col_cnt = if ROW > 0 { cells[0].len() } else { 0 };
         Self { cells, col_cnt }
     }
 }
 
-impl<'a, T: Default, const ROW: usize> IntoIterator for &'a FixedRowTable<T, ROW> {
-    type Item = (Position, &'a T);
-    type IntoIter = ZipPosition<&'a T, Cells<'a, T, FixedRowTable<T, ROW>>>;
+impl<'a, T: Default, const ROW: usize> IntoIterator for &'a MemFixedRowTable<T, ROW> {
+    type Item = (Position, RefOrOwned<'a, T>);
+    type IntoIter = ZipPosition<RefOrOwned<'a, T>, Cells<'a, T, MemFixedRowTable<T, ROW>>>;
 
     /// Converts into an iterator over the table's cells' positions and values
     fn into_iter(self) -> Self::IntoIter {
@@ -131,9 +143,9 @@ impl<'a, T: Default, const ROW: usize> IntoIterator for &'a FixedRowTable<T, ROW
     }
 }
 
-impl<T: Default, const ROW: usize> IntoIterator for FixedRowTable<T, ROW> {
+impl<T: Default, const ROW: usize> IntoIterator for MemFixedRowTable<T, ROW> {
     type Item = (Position, T);
-    type IntoIter = ZipPosition<T, IntoCells<T, FixedRowTable<T, ROW>>>;
+    type IntoIter = ZipPosition<T, IntoCells<T, MemFixedRowTable<T, ROW>>>;
 
     /// Converts into an iterator over the table's cells' positions and values
     fn into_iter(self) -> Self::IntoIter {
@@ -142,7 +154,7 @@ impl<T: Default, const ROW: usize> IntoIterator for FixedRowTable<T, ROW> {
 }
 
 impl<T: Default, V: Into<T>, const ROW: usize> FromIterator<(usize, usize, V)>
-    for FixedRowTable<T, ROW>
+    for MemFixedRowTable<T, ROW>
 {
     /// Produces a table from the provided iterator of (row, col, value). All
     /// values that would go outside of the range of the table will be dropped.
@@ -156,7 +168,7 @@ impl<T: Default, V: Into<T>, const ROW: usize> FromIterator<(usize, usize, V)>
 }
 
 impl<T: Default, V: Into<T>, const ROW: usize> FromIterator<(Position, V)>
-    for FixedRowTable<T, ROW>
+    for MemFixedRowTable<T, ROW>
 {
     /// Produces a table from the provided iterator of (position, value). All
     /// values that would go outside of the range of the table will be dropped.
@@ -169,22 +181,22 @@ impl<T: Default, V: Into<T>, const ROW: usize> FromIterator<(Position, V)>
     }
 }
 
-impl<T: Default, const ROW: usize> Index<(usize, usize)> for FixedRowTable<T, ROW> {
+impl<T: Default, const ROW: usize> Index<(usize, usize)> for MemFixedRowTable<T, ROW> {
     type Output = T;
 
     /// Indexes into a table by a specific row and column, returning a
     /// reference to the cell if it exists, otherwise panicking
     fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
-        self.get_cell(row, col)
+        self._get_cell(row, col)
             .expect("Row/Column index out of range")
     }
 }
 
-impl<T: Default, const ROW: usize> IndexMut<(usize, usize)> for FixedRowTable<T, ROW> {
+impl<T: Default, const ROW: usize> IndexMut<(usize, usize)> for MemFixedRowTable<T, ROW> {
     /// Indexes into a table by a specific row and column, returning a mutable
     /// reference to the cell if it exists, otherwise panicking
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
-        self.get_mut_cell(row, col)
+        self._get_mut_cell(row, col)
             .expect("Row/Column index out of range")
     }
 }
@@ -195,19 +207,19 @@ mod tests {
 
     #[test]
     fn row_cnt_should_match_fixed_row_size() {
-        let table: FixedRowTable<usize, 0> = FixedRowTable::new();
+        let table: MemFixedRowTable<usize, 0> = MemFixedRowTable::new();
         assert_eq!(table.row_cnt(), 0);
 
-        let table: FixedRowTable<usize, 4> = FixedRowTable::new();
+        let table: MemFixedRowTable<usize, 4> = MemFixedRowTable::new();
         assert_eq!(table.row_cnt(), 4);
     }
 
     #[test]
     fn col_cnt_should_be_dynamic() {
-        let table: FixedRowTable<usize, 0> = FixedRowTable::new();
+        let table: MemFixedRowTable<usize, 0> = MemFixedRowTable::new();
         assert_eq!(table.col_cnt(), 0);
 
-        let mut table: FixedRowTable<usize, 1> = FixedRowTable::new();
+        let mut table: MemFixedRowTable<usize, 1> = MemFixedRowTable::new();
         table.push_column(vec![1, 2, 3]);
         table.push_column(vec![1, 2, 3]);
         table.push_column(vec![1, 2, 3]);
@@ -217,33 +229,33 @@ mod tests {
 
     #[test]
     fn get_cell_should_return_ref_to_cell_at_location() {
-        let table = FixedRowTable::from([vec!["a", "b"], vec!["c", "d"]]);
-        assert_eq!(table.get_cell(0, 0), Some(&"a"));
-        assert_eq!(table.get_cell(0, 1), Some(&"b"));
-        assert_eq!(table.get_cell(1, 0), Some(&"c"));
-        assert_eq!(table.get_cell(1, 1), Some(&"d"));
+        let table = MemFixedRowTable::from([vec!["a", "b"], vec!["c", "d"]]);
+        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"a"));
+        assert_eq!(table.get_cell(0, 1).as_deref(), Some(&"b"));
+        assert_eq!(table.get_cell(1, 0).as_deref(), Some(&"c"));
+        assert_eq!(table.get_cell(1, 1).as_deref(), Some(&"d"));
         assert_eq!(table.get_cell(1, 2), None);
     }
 
     #[test]
     fn get_mut_cell_should_return_mut_ref_to_cell_at_location() {
-        let mut table = FixedRowTable::from([vec!["a", "b"], vec!["c", "d"]]);
+        let mut table = MemFixedRowTable::from([vec!["a", "b"], vec!["c", "d"]]);
         *table.get_mut_cell(0, 0).unwrap() = "e";
-        assert_eq!(table.get_cell(0, 0), Some(&"e"));
+        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"e"));
     }
 
     #[test]
     fn insert_cell_should_return_previous_cell_and_overwrite_content() {
-        let mut table: FixedRowTable<usize, 3> = FixedRowTable::new();
+        let mut table: MemFixedRowTable<usize, 3> = MemFixedRowTable::new();
 
         assert_eq!(table.insert_cell(0, 0, 123), Some(0));
         assert_eq!(table.insert_cell(0, 0, 999), Some(123));
-        assert_eq!(table.get_cell(0, 0), Some(&999))
+        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&999))
     }
 
     #[test]
     fn remove_cell_should_return_cell_that_is_removed() {
-        let mut table = FixedRowTable::from([vec![1, 2], vec![3, 4]]);
+        let mut table = MemFixedRowTable::from([vec![1, 2], vec![3, 4]]);
 
         // NOTE: Because fixed table uses a default value when removing,
         //       we should see the default value of a number (0) be injected
@@ -253,7 +265,7 @@ mod tests {
 
     #[test]
     fn truncate_should_remove_cells_outside_of_column_capacity_count() {
-        let mut table = FixedRowTable::from([
+        let mut table = MemFixedRowTable::from([
             vec!["a", "b", "c"],
             vec!["d", "e", "f"],
             vec!["g", "h", "i"],
@@ -300,7 +312,7 @@ mod tests {
 
     #[test]
     fn shrink_to_fit_should_adjust_column_count_based_on_cell_positions() {
-        let mut table: FixedRowTable<&'static str, 3> = FixedRowTable::new();
+        let mut table: MemFixedRowTable<&'static str, 3> = MemFixedRowTable::new();
         assert_eq!(table.row_cnt(), 3);
         assert_eq!(table.col_cnt(), 0);
 
@@ -317,20 +329,20 @@ mod tests {
 
     #[test]
     fn index_by_row_and_column_should_return_cell_ref() {
-        let table = FixedRowTable::from([vec![1, 2, 3]]);
+        let table = MemFixedRowTable::from([vec![1, 2, 3]]);
         assert_eq!(table[(0, 1)], 2);
     }
 
     #[test]
     #[should_panic]
     fn index_by_row_and_column_should_panic_if_cell_not_found() {
-        let table = FixedRowTable::from([vec![1, 2, 3]]);
+        let table = MemFixedRowTable::from([vec![1, 2, 3]]);
         let _ = table[(1, 0)];
     }
 
     #[test]
     fn index_mut_by_row_and_column_should_return_mutable_cell() {
-        let mut table = FixedRowTable::from([vec![1, 2, 3]]);
+        let mut table = MemFixedRowTable::from([vec![1, 2, 3]]);
         table[(0, 1)] = 999;
 
         // Verify on the altered cell was changed
@@ -342,7 +354,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn index_mut_by_row_and_column_should_panic_if_cell_not_found() {
-        let mut table = FixedRowTable::from([vec![1, 2, 3]]);
+        let mut table = MemFixedRowTable::from([vec![1, 2, 3]]);
         table[(1, 0)] = 999;
     }
 }

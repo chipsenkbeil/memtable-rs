@@ -1,4 +1,4 @@
-use super::{Position, Table};
+use super::{Position, RefOrOwned, Table};
 use std::marker::PhantomData;
 
 /// Represents an iterator over some part of a table at the granularity
@@ -98,7 +98,7 @@ impl<'a, D, T: Table<Data = D>> Row<'a, D, T> {
 }
 
 impl<'a, D: 'a, T: Table<Data = D>> Iterator for Row<'a, D, T> {
-    type Item = &'a D;
+    type Item = RefOrOwned<'a, D>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let cell = self.table.get_cell(self.row, self.col);
@@ -116,7 +116,7 @@ impl<'a, D: 'a, T: Table<Data = D>> Iterator for Row<'a, D, T> {
 
 impl<'a, D: 'a, T: Table<Data = D>> ExactSizeIterator for Row<'a, D, T> {}
 
-impl<'a, D, T: Table<Data = D>> CellIter<&'a D> for Row<'a, D, T> {
+impl<'a, D, T: Table<Data = D>> CellIter<RefOrOwned<'a, D>> for Row<'a, D, T> {
     fn row(&self) -> usize {
         self.row
     }
@@ -240,7 +240,7 @@ impl<'a, D, T: Table<Data = D>> Column<'a, D, T> {
 }
 
 impl<'a, D: 'a, T: Table<Data = D>> Iterator for Column<'a, D, T> {
-    type Item = &'a D;
+    type Item = RefOrOwned<'a, D>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let cell = self.table.get_cell(self.row, self.col);
@@ -258,7 +258,7 @@ impl<'a, D: 'a, T: Table<Data = D>> Iterator for Column<'a, D, T> {
 
 impl<'a, D: 'a, T: Table<Data = D>> ExactSizeIterator for Column<'a, D, T> {}
 
-impl<'a, D, T: Table<Data = D>> CellIter<&'a D> for Column<'a, D, T> {
+impl<'a, D, T: Table<Data = D>> CellIter<RefOrOwned<'a, D>> for Column<'a, D, T> {
     fn row(&self) -> usize {
         self.row
     }
@@ -340,7 +340,7 @@ impl<'a, D, T: Table<Data = D>> Cells<'a, D, T> {
 }
 
 impl<'a, D: 'a, T: Table<Data = D>> Iterator for Cells<'a, D, T> {
-    type Item = &'a D;
+    type Item = RefOrOwned<'a, D>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let cell = self.table.get_cell(self.row, self.col);
@@ -380,7 +380,7 @@ impl<'a, D: 'a, T: Table<Data = D>> Iterator for Cells<'a, D, T> {
 
 impl<'a, D: 'a, T: Table<Data = D>> ExactSizeIterator for Cells<'a, D, T> {}
 
-impl<'a, D, T: Table<Data = D>> CellIter<&'a D> for Cells<'a, D, T> {
+impl<'a, D, T: Table<Data = D>> CellIter<RefOrOwned<'a, D>> for Cells<'a, D, T> {
     fn row(&self) -> usize {
         self.row
     }
@@ -550,7 +550,10 @@ mod tests {
             (2, 1, "f"),
         ]));
 
-        assert_eq!(table.row(1).collect::<Vec<&&str>>(), vec![&"c", &"d"]);
+        assert_eq!(
+            table.row(1).map(|x| *x).collect::<Vec<&str>>(),
+            vec!["c", "d"]
+        );
     }
 
     #[test]
@@ -715,7 +718,10 @@ mod tests {
             (1, 2, "f"),
         ]));
 
-        assert_eq!(table.column(1).collect::<Vec<&&str>>(), vec![&"b", &"e"]);
+        assert_eq!(
+            table.column(1).map(|x| *x).collect::<Vec<&str>>(),
+            vec!["b", "e"]
+        );
     }
 
     #[test]
@@ -847,8 +853,8 @@ mod tests {
         ]));
 
         assert_eq!(
-            table.cells().collect::<Vec<&&str>>(),
-            vec![&"a", &"b", &"c", &"d", &"e", &"f"]
+            table.cells().map(|x| *x).collect::<Vec<&str>>(),
+            vec!["a", "b", "c", "d", "e", "f"]
         );
     }
 

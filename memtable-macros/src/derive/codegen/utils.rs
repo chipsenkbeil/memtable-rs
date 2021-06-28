@@ -25,6 +25,10 @@ pub fn make_variant_types(columns: &[&TableColumn]) -> Vec<Type> {
     columns.iter().map(|col| col.ty.clone()).collect()
 }
 
+pub fn make_column_indexes(columns: &[&TableColumn]) -> Vec<syn::Index> {
+    (0..columns.len()).map(syn::Index::from).collect()
+}
+
 pub fn make_snake_idents(columns: &[&TableColumn]) -> Vec<Ident> {
     columns
         .iter()

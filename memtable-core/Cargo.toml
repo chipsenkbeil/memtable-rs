@@ -10,8 +10,13 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 
 [features]
+default = ["std"]
+
+alloc = []
 cell = []
 serde-1 = ["serde", "serde_with"]
+sled-1 = ["serde-1", "sled"]
+std = []
 
 [dependencies]
 paste = "1.0.5"

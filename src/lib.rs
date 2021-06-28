@@ -31,7 +31,7 @@
 //! use memtable::prelude::*;
 //!
 //! // Create a 2x3 (row x column) table of integers
-//! let mut table = FixedTable::from([
+//! let mut table = MemFixedTable::from([
 //!     [1, 2, 3],
 //!     [4, 5, 6],
 //! ]);
@@ -47,9 +47,9 @@
 //! In the core library, you will find four primary tables:
 //!
 //! - [`MemDynamicTable`]: table with a dynamic capacity for rows & columns
-//! - [`FixedTable`]: table with a fixed capacity for rows & columns
-//! - [`FixedRowTable`]: table with a fixed capacity for rows & dynamic capacity for columns
-//! - [`FixedColumnTable`]: table with a dynamic capacity for rows & fixed capacity for columns
+//! - [`MemFixedTable`]: table with a fixed capacity for rows & columns
+//! - [`MemFixedRowTable`]: table with a fixed capacity for rows & dynamic capacity for columns
+//! - [`MemFixedColumnTable`]: table with a dynamic capacity for rows & fixed capacity for columns
 //!
 //! ## The Traits
 //!

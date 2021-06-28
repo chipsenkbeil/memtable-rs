@@ -12,21 +12,27 @@
 //!
 //! * [`MemDynamicTable`] struct, which is the core table available from
 //!   this crate that acts as a table that can grow and shrink dynamically
-//! * [`FixedTable`] struct - available with Rust 1.51+ - provides a fixed-sized
+//! * [`MemFixedTable`] struct - available with Rust 1.51+ - provides a fixed-sized
 //!   counterpart to [`MemDynamicTable`] where the table is pre-allocated internally
 //!   using a 2D array
-//! * [`FixedRowTable`] struct, where the total rows is fixed and columns
+//! * [`MemFixedRowTable`] struct, where the total rows is fixed and columns
 //!   can grow dynamically
-//! * [`FixedColumnTable`] struct, where the total columns is fixed and rows
+//! * [`MemFixedColumnTable`] struct, where the total columns is fixed and rows
 //!   can grow dynamically
 //! * [`Table`] trait, which provides the majority of the methods
 //!   available to operate on a table
 //! * [`iter::CellIter`] trait, which enables examining the row & column
 //!   positions of iterators over individual cells in a table as well as zip
 //!   an iterator with the position of each cell
+//! * [`RefOrOwned`] struct, which acts as a bridge between retrieving data
+//!   from a table with the intention of getting a reference (some may only
+//!   support new data such as `sled`)
+//! * [`MutRefOrOwned`] struct, which acts as a bridge between retrieving data
+//!   from a table with the intention of getting a mutable reference (some may
+//!   only support new data such as `sled`)
 //!
 pub use crate::{
-    impls::{FixedColumnTable, FixedRowTable, FixedTable, MemDynamicTable},
+    impls::{MemDynamicTable, MemFixedColumnTable, MemFixedRowTable, MemFixedTable},
     iter::CellIter,
-    Table,
+    MutRefOrOwned, RefOrOwned, Table,
 };

@@ -14,6 +14,7 @@ cell = ["memtable-core/cell"]
 csv = ["memtable-core/csv"]
 macros = ["memtable-macros"]
 serde = ["memtable-core/serde-1"]
+sled = ["memtable-core/sled-1"]
 
 [dependencies]
 memtable-core = { version = "=0.1.0", path = "memtable-core" }
