@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use core::{cmp::Ordering, fmt};
 
 /// Represents the position of a cell in a table
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -15,6 +15,12 @@ impl Position {
     /// Creates a new position with the given row and column
     pub fn new(row: usize, col: usize) -> Self {
         Self { row, col }
+    }
+}
+
+impl fmt::Display for Position {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{}", self.row, self.col)
     }
 }
 
