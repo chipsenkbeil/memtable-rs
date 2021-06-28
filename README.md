@@ -16,10 +16,10 @@ features from either.
 
 ```toml
 [dependencies]
-memtable = "0.1"
+memtable = "0.2"
 
 # Optionally, include features like `macros`
-# memtable = { version = "0.1", features = ["macros"] }
+memtable = { version = "0.2", features = ["macros"] }
 ```
 
 ## Usage

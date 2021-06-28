@@ -6,11 +6,11 @@ use std::{convert::TryFrom, sync::Mutex};
 /// Total errors to keep around, dropping older ones after reaching limit
 const ERROR_BUFFER_SIZE: usize = 10;
 
-/// Represents a table that is replicated using sled
+/// Represents a table that is replicated using a [`sled::Tree`]
 pub struct SledTable<D, T>
 where
     D: Serialize + for<'de> Deserialize<'de>,
-    T: Table<Data = D> + Default,
+    T: Table<Data = D>,
 {
     tree: Tree,
     table: T,
@@ -20,7 +20,7 @@ where
 impl<D, T> SledTable<D, T>
 where
     D: Serialize + for<'de> Deserialize<'de>,
-    T: Table<Data = D> + Default,
+    T: Table<Data = D>,
 {
     /// Creates a new sled table using the provided tree and factory function
     /// to create the inmemory table that takes in the current row and column
@@ -77,18 +77,23 @@ where
         Ok(())
     }
 
+    /// Returns true if this table has uncleared errors
     pub fn has_errors(&self) -> bool {
         !self.errors.lock().unwrap().is_empty()
     }
 
+    /// Removes errors in table without returning them
     pub fn clear_errors(&mut self) {
         self.errors.lock().unwrap().clear();
     }
 
+    /// Removes errors in table and returns them
     pub fn take_errors(&mut self) -> Vec<utils::Error> {
         self.errors.lock().unwrap().drain(..).collect()
     }
 
+    /// Adds a new error to the end of the queue, removing LRU errors until
+    /// error buffer is at or under max capacity
     fn push_error(&mut self, e: impl Into<utils::Error>) {
         let mut errors = self.errors.lock().unwrap();
         errors.push(e.into());
@@ -122,7 +127,7 @@ where
 impl<D, T> Table for SledTable<D, T>
 where
     D: Serialize + for<'de> Deserialize<'de>,
-    T: Table<Data = D> + Default,
+    T: Table<Data = D>,
 {
     type Data = D;
 
@@ -142,6 +147,9 @@ where
         self.table.get_mut_cell(row, col)
     }
 
+    /// Will insert the data into the cell, replicate it using the [`sled::Tree`],
+    /// and update the metadata within the [`sled::Tree`] based on if the maximum
+    /// row or column count has changed
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data> {
         if let Err(x) = utils::insert_cell::<Self::Data>(&self.tree, row, col, &value) {
             self.push_error(x);
@@ -158,6 +166,9 @@ where
         value
     }
 
+    /// Will remove the data from the cell, remove it from the [`sled::Tree`],
+    /// and update the metadata within the [`sled::Tree`] based on if the maximum
+    /// row or column count has changed
     fn remove_cell(&mut self, row: usize, col: usize) -> Option<Self::Data> {
         if let Err(x) = utils::remove_cell::<Self::Data>(&self.tree, row, col) {
             self.push_error(x);
@@ -174,6 +185,8 @@ where
         value
     }
 
+    /// Will set the row capacity of the inner table and replicate the
+    /// metadata in the [`sled::Tree`]
     fn set_row_capacity(&mut self, capacity: usize) {
         if let Err(x) = utils::set_row_cnt(&self.tree, capacity) {
             self.push_error(x);
@@ -182,6 +195,8 @@ where
         self.table.set_row_capacity(capacity);
     }
 
+    /// Will set the column capacity of the inner table and replicate the
+    /// metadata in the [`sled::Tree`]
     fn set_column_capacity(&mut self, capacity: usize) {
         if let Err(x) = utils::set_col_cnt(&self.tree, capacity) {
             self.push_error(x);
