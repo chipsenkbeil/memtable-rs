@@ -1,10 +1,11 @@
-use super::{utils, TableColumn};
+use super::{utils, TableColumn, TableMode};
 use quote::format_ident;
 use syn::{parse_quote, Generics, Ident, ItemImpl, Path};
 use voca_rs::case;
 
 pub struct Args<'a> {
     pub root: &'a Path,
+    pub mode: TableMode,
     pub table_name: &'a Ident,
     pub generics: &'a Generics,
     pub table_data_name: &'a Ident,
@@ -14,6 +15,7 @@ pub struct Args<'a> {
 pub fn make(args: Args) -> ItemImpl {
     let Args {
         root,
+        mode,
         table_name,
         generics,
         table_data_name,
@@ -28,17 +30,17 @@ pub fn make(args: Args) -> ItemImpl {
         .map(|name| format_ident!("is_{}", name))
         .collect();
     let idx = utils::make_column_indexes(columns);
+    let inner_table_ty =
+        utils::make_inner_table_type(root, mode, table_data_name, generics, columns.len());
 
     parse_quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::convert::TryFrom<
-            #root::DynamicTable<#table_data_name #ty_generics>
-        > for #table_name #ty_generics #where_clause {
+        impl #impl_generics ::std::convert::TryFrom<#inner_table_ty>
+            for #table_name #ty_generics #where_clause
+        {
             type Error = &'static ::std::primitive::str;
 
-            fn try_from(
-                table: #root::DynamicTable<#table_data_name #ty_generics>,
-            ) -> ::std::result::Result<Self, Self::Error> {
+            fn try_from(table: #inner_table_ty) -> ::std::result::Result<Self, Self::Error> {
                 for row in 0..#root::Table::row_cnt(&table) {
                     #(
                         let cell = #root::Table::get_cell(&table, row, #idx);

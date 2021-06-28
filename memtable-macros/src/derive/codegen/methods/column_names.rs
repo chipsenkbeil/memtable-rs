@@ -12,7 +12,7 @@ pub fn make(args: Args) -> ItemFn {
 
     parse_quote! {
         /// Returns the numbers of the columns associated with this type of table
-        pub const fn column_names() -> &'static [&'static ::std::primitive::str] {
+        pub fn column_names() -> &'static [&'static ::std::primitive::str] {
             &[#(#column_names),*]
         }
     }

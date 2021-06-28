@@ -21,15 +21,21 @@ pub fn do_derive_table(root: Path, input: DeriveInput) -> darling::Result<TokenS
 
 fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
     let vis = &table.vis;
-    let (_, ty_generics, where_clause) = table.generics.split_for_impl();
+    let (impl_generics, _, where_clause) = table.generics.split_for_impl();
 
     let table_name = table.to_table_name();
     let table_data_name = table.to_table_data_name();
     let generics = &table.generics;
     let columns = table.columns();
+    let mode = table.mode;
 
-    let (item_enum, item_enum_impl) = codegen::data::make(codegen::data::Args {
+    let codegen::data::Return {
+        definition: data_definition,
+        core_impl: data_core_impl,
+        default_impl: data_default_impl,
+    } = codegen::data::make(codegen::data::Args {
         vis,
+        mode,
         table_data_name: &table_data_name,
         generics,
         derive: table.data_attr.as_ref().and_then(|x| x.derive.as_ref()),
@@ -38,6 +44,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
 
     let common_traits = codegen::traits::make_common(codegen::traits::CommonArgs {
         root: &root,
+        mode,
         table_name: &table_name,
         generics,
         table_data_name: &table_data_name,
@@ -64,7 +71,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
 
     let table_impl = codegen::make_table_impl(codegen::TableImplArgs {
         root: &root,
-        mode: table.mode,
+        mode,
         origin_struct_name: &table.ident,
         table_name: &table_name,
         generics: &table.generics,
@@ -74,7 +81,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
 
     let inner_table_ty = codegen::utils::make_inner_table_type(
         &root,
-        table.mode,
+        mode,
         &table_data_name,
         &table.generics,
         columns.len(),
@@ -88,10 +95,11 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
     quote! {
         #[automatically_derived]
         #derive_attr
-        #vis struct #table_name #ty_generics(#inner_table_ty) #where_clause;
+        #vis struct #table_name #impl_generics(#inner_table_ty) #where_clause;
 
-        #item_enum
-        #item_enum_impl
+        #data_definition
+        #data_core_impl
+        #data_default_impl
         #common_traits
         #struct_to_parts
         #parts_to_struct

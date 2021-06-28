@@ -19,13 +19,11 @@ pub fn make_inner_table_type(
             parse_quote!(#root::DynamicTable<#table_data_name #ty_generics>)
         }
         TableMode::FixedColumn => {
-            let params = generics.params.iter();
-            parse_quote!(#root::FixedColumnTable<#table_data_name<#(#params),* #col_cnt>>)
+            parse_quote!(#root::FixedColumnTable<#table_data_name #ty_generics, #col_cnt>)
         }
         TableMode::Fixed { rows } => {
-            let params = generics.params.iter();
             let row_cnt: LitInt = parse_quote!(#rows);
-            parse_quote!(#root::FixedTable<#table_data_name<#(#params),* #row_cnt, #col_cnt>>)
+            parse_quote!(#root::FixedTable<#table_data_name #ty_generics, #row_cnt, #col_cnt>)
         }
     }
 }

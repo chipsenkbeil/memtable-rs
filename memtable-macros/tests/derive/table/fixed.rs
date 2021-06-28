@@ -4,6 +4,7 @@ use std::{convert::TryFrom, path::Path};
 
 // Struct should be supported with all primitive types
 #[derive(Debug, PartialEq, Eq, Table)]
+#[table(mode(fixed(rows = "123")))]
 struct MyRow {
     field1: bool,
     field2: usize,
@@ -11,13 +12,15 @@ struct MyRow {
 
 // Struct should support generics
 #[derive(Table)]
-struct GenericRow<A, B> {
+#[table(mode(fixed(rows = "123")))]
+struct GenericRow<A: Default, B> {
     field1: A,
     field2: B,
 }
 
 // Struct sohuld support lifetimes
 #[derive(Table)]
+#[table(mode(fixed(rows = "123")))]
 struct LifetimeRow<'a> {
     field1: &'a str,
     field2: &'a Path,
@@ -374,7 +377,7 @@ fn should_support_trying_to_convert_from_untyped_table() {
     // If data is in right columns and is not missing anything,
     // conversion should work fine
     {
-        let mut table = memtable::DynamicTable::new();
+        let mut table = memtable::FixedTable::new();
         table.push_row(vec![
             MyRowTableData::Field1(false),
             MyRowTableData::Field2(123),
@@ -393,7 +396,7 @@ fn should_support_trying_to_convert_from_untyped_table() {
 
     // If data is not in right order in terms of column types, should fail
     {
-        let mut table = memtable::DynamicTable::new();
+        let mut table = memtable::FixedTable::new();
         table.push_row(vec![
             MyRowTableData::Field2(123),
             MyRowTableData::Field1(false),
@@ -407,7 +410,7 @@ fn should_support_trying_to_convert_from_untyped_table() {
 
     // If data is missing in places, should fail
     {
-        let mut table = memtable::DynamicTable::new();
+        let mut table = memtable::FixedTable::new();
         table.push_row(vec![
             MyRowTableData::Field1(false),
             MyRowTableData::Field2(123),

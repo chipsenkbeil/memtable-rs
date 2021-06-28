@@ -40,6 +40,23 @@ struct LifetimeRow<'a> {
     field2: &'a ::std::path::Path,
 }
 
+// Support alternative table modes
+#[derive(::memtable_macros::Table)]
+#[table(mode = "fixed_column")]
+struct FixedColumn {
+    field1: ::std::string::String,
+    field2: ::std::primitive::usize,
+    field3: ::std::primitive::bool,
+}
+
+#[derive(::memtable_macros::Table)]
+#[table(mode(fixed(rows = "123")))]
+struct Fixed {
+    field1: ::std::string::String,
+    field2: ::std::primitive::usize,
+    field3: ::std::primitive::bool,
+}
+
 // These traits exist to make sure we properly import using
 // ::std::primitive::<TYPE> instead of purely <TYPE>
 //

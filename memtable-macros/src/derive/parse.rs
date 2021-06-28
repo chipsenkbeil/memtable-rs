@@ -93,6 +93,7 @@ pub enum TableMode {
 }
 
 impl Default for TableMode {
+    /// Defaults to dynamic, which doesn't require the fields to implement default
     fn default() -> Self {
         Self::Dynamic
     }
