@@ -1,4 +1,4 @@
-# DynamicTable - Inmemory tables for use in Rust
+# memtable - Inmemory tables for use in Rust
 
 [![Build Status][build_img]][build_lnk]
 [![Crates.io][crates_img]][crates_lnk]
