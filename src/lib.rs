@@ -149,3 +149,6 @@ pub use memtable_core::*;
 
 #[cfg(feature = "macros")]
 pub use memtable_macros::*;
+
+#[cfg(all(doctest, feature = "macros"))]
+doc_comment::doctest!("../README.md");

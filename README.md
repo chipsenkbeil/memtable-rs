@@ -38,7 +38,7 @@ let mut table = FixedTable::from([
 
 // Examine one of the values, replace it, and examine again
 assert_eq!(table[(1, 2)], 6);
-table.insert_cell(1, 2, 999);
+table[(1, 2)] = 999;
 assert_eq!(table[(1, 2)], 999);
 ```
 
@@ -60,7 +60,7 @@ In the core library, you will find four primary tables:
   position and getting the current row & column of
   the iterator
 
-## The Extensions
+## The Features
 
 Alongside the essentials, the library also provides several features that
 provide extensions to the table arsenal:
@@ -71,6 +71,8 @@ provide extensions to the table arsenal:
   enums that can be used as the data type for a table to enable multiple
   data types within a table (e.g. `DynamicTable<Cell2<String, bool>>`)
 - **serde**: enables *serde* support on all table & cell implementations
+- **sled**: enables `SledTable`, which provides persistent storage on top of
+  other tables via the sled database
 - **macros**: enables `Table` macro to derive new struct that implements the
   `Table` trait to be able to store some struct into a dedicated, inmemory table
 

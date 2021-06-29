@@ -20,6 +20,9 @@ sled = ["memtable-core/sled-1"]
 memtable-core = { version = "=0.2.0", path = "memtable-core" }
 memtable-macros = { version = "=0.2.0", path = "memtable-macros", optional = true }
 
+[dev-dependencies]
+doc-comment = "0.3.3"
+
 [workspace]
 members = [
     "memtable-core",
