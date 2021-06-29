@@ -2,7 +2,7 @@
 name = "memtable-macros"
 description = "Macro library that provides ability to derive typed tables and generate tables compile-time."
 categories = ["data-structures"]
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Chip Senkbeil <chip@senkbeil.org>"]
 edition = "2018"
 homepage = "https://github.com/chipsenkbeil/memtable-rs"
@@ -23,7 +23,7 @@ syn = { version = "1.0.53", features = ["full"] }
 voca_rs = "1.13.0"
 
 [dev-dependencies]
-memtable-core = { version = "=0.1.0", path = "../memtable-core" }
+memtable-core = { version = "=0.2.0", path = "../memtable-core" }
 rustversion = "1.0.4"
 trybuild = "1.0.35"
 
