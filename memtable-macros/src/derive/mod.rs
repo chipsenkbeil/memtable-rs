@@ -28,6 +28,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
     let generics = &table.generics;
     let columns = table.columns();
     let mode = table.mode;
+    let style = table.as_style();
 
     let codegen::data::Return {
         definition: data_definition,
@@ -63,6 +64,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
             origin_struct_name: &table.ident,
             generics,
             columns: &columns,
+            style,
         });
         (Some(x), Some(y))
     } else {
@@ -72,6 +74,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
     let table_impl = codegen::make_table_impl(codegen::TableImplArgs {
         root: &root,
         mode,
+        style,
         origin_struct_name: &table.ident,
         table_name: &table_name,
         generics: &table.generics,

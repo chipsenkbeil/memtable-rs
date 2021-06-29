@@ -1,10 +1,12 @@
 use super::{utils, TableColumn};
-use syn::{parse_quote, Generics, Ident, ItemImpl};
+use darling::ast::Style;
+use syn::{parse_quote, Expr, Generics, Ident, ItemImpl};
 
 pub struct Args<'a> {
     pub origin_struct_name: &'a Ident,
     pub generics: &'a Generics,
     pub columns: &'a [&'a TableColumn],
+    pub style: Style,
 }
 
 pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
@@ -12,6 +14,7 @@ pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
         origin_struct_name,
         generics,
         columns,
+        style,
     } = args;
 
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
@@ -30,6 +33,12 @@ pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
         }
     };
 
+    let (args, body): (, Expr) = match style {
+        Style::Tuple => parse_quote!(Self ( #(#field),* )),
+        Style::Struct => parse_quote!(Self { #(#field),* }),
+        Style::Unit => unreachable!(),
+    };
+
     let parts_to_struct: ItemImpl = parse_quote! {
         #[automatically_derived]
         impl #impl_generics ::std::convert::From<(#(#ty),*)>
@@ -37,7 +46,7 @@ pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
         {
             /// Convert from tuple of fields to struct
             fn from((#(#field),*): (#(#ty),*)) -> Self {
-                Self { #(#field),* }
+                #body
             }
         }
     };

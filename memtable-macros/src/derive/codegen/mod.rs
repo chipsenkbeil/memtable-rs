@@ -5,11 +5,13 @@ pub mod traits;
 pub mod utils;
 
 use super::{TableColumn, TableMode};
+use darling::ast::Style;
 use syn::{parse_quote, Generics, Ident, ItemImpl, Path};
 
 pub struct TableImplArgs<'a> {
     pub root: &'a Path,
     pub mode: TableMode,
+    pub style: Style,
     pub origin_struct_name: &'a Ident,
     pub table_name: &'a Ident,
     pub generics: &'a Generics,
@@ -21,6 +23,7 @@ pub fn make_table_impl(args: TableImplArgs) -> ItemImpl {
     let TableImplArgs {
         root,
         mode,
+        style,
         origin_struct_name,
         table_name,
         generics,
@@ -66,6 +69,7 @@ pub fn make_table_impl(args: TableImplArgs) -> ItemImpl {
         generics,
         columns,
         origin_struct_name,
+        style,
     });
     let pop_row_fn = methods::pop_row::make(methods::pop_row::Args {
         root,
