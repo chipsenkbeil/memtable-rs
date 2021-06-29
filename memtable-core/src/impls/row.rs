@@ -1,5 +1,6 @@
 use crate::{iter::*, utils, Position, Table};
 use std::{
+    cmp,
     iter::FromIterator,
     mem,
     ops::{Index, IndexMut},
@@ -11,6 +12,7 @@ use std::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
 pub struct FixedRowTable<T: Default, const ROW: usize> {
+    /// Internal allocation of our table's data
     #[cfg_attr(
         feature = "serde-1",
         serde(
@@ -24,6 +26,12 @@ pub struct FixedRowTable<T: Default, const ROW: usize> {
     )]
     cells: [Vec<T>; ROW],
 
+    /// Represents a tracker for how many rows out of our total capacity
+    /// have been used
+    row_cnt: usize,
+
+    /// Represents a tracker for how many columns out of our total capacity
+    /// have been used
     col_cnt: usize,
 }
 
@@ -37,13 +45,16 @@ impl<T: Default, const ROW: usize> FixedRowTable<T, ROW> {
     /// current column capacity
     pub fn truncate(&mut self) {
         let col_cnt = self.col_cnt;
-        self.cells.iter_mut().for_each(|x| x.truncate(col_cnt));
-    }
 
-    /// Shrinks the table's column capacity to fit where cells exist
-    pub fn shrink_to_fit(&mut self) {
-        let max_col: usize = self.cells.iter().map(|x| x.len()).max().unwrap_or_default();
-        self.col_cnt = max_col;
+        // Shrink each row down to the right size
+        self.cells.iter_mut().for_each(|x| x.truncate(col_cnt));
+
+        // Now go through each column and re-assign rows to default values
+        for row in self.cells[self.row_cnt..ROW].iter_mut() {
+            for cell in row {
+                *cell = T::default();
+            }
+        }
     }
 
     /// Returns an iterator over the cells and their positions within the table
@@ -53,9 +64,12 @@ impl<T: Default, const ROW: usize> FixedRowTable<T, ROW> {
 }
 
 impl<T: Default, const ROW: usize> Default for FixedRowTable<T, ROW> {
+    /// Creates a new table with maximum allocation of ROW per column, but
+    /// with a virtual space (current occupancy) of 0x0
     fn default() -> Self {
         Self {
             cells: utils::default_array::<Vec<T>, ROW>(),
+            row_cnt: 0,
             col_cnt: 0,
         }
     }
@@ -65,7 +79,7 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
     type Data = T;
 
     fn row_cnt(&self) -> usize {
-        ROW
+        self.row_cnt
     }
 
     fn col_cnt(&self) -> usize {
@@ -73,7 +87,7 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
     }
 
     fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
-        if row < ROW && col < self.col_cnt {
+        if row < self.row_cnt && col < self.col_cnt {
             Some(&self.cells[row][col])
         } else {
             None
@@ -81,7 +95,7 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
     }
 
     fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
-        if row < ROW && col < self.col_cnt {
+        if row < self.row_cnt && col < self.col_cnt {
             Some(&mut self.cells[row][col])
         } else {
             None
@@ -89,35 +103,79 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
     }
 
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data> {
+        // Allow inserting anywhere in the allocated space, not just virtual
         if row < ROW {
+            let mut did_grow = false;
             if col >= self.col_cnt {
                 self.cells[row].resize_with(col + 1, Default::default);
                 self.col_cnt = col + 1;
+                did_grow = true;
             }
 
-            Some(mem::replace(&mut self.cells[row][col], value))
+            if row >= self.row_cnt {
+                self.row_cnt = row + 1;
+                did_grow = true;
+            }
+
+            // Perform operation, but if growing our virtual range, don't
+            // return anything and pretend that it was empty
+            let old_value = mem::replace(&mut self.cells[row][col], value);
+            if !did_grow {
+                Some(old_value)
+            } else {
+                None
+            }
         } else {
             None
         }
     }
 
     fn remove_cell(&mut self, row: usize, col: usize) -> Option<Self::Data> {
+        // TODO: Same problem as elsewhere, how do we know when to shrink our
+        //       row and col counts? Especially, unlike the dynamic scenario,
+        //       we can't rely on values not being in a map to determine
         self.insert_cell(row, col, T::default())
+    }
+
+    /// Will adjust the internal row count tracker to the specified capacity,
+    /// capping at ROW.
+    ///
+    /// Note that this does **not** remove any cells from the table in their
+    /// old positions. Instead, this updates the virtual space within the
+    /// table that is made available for methods like [`Table::get_cell`].
+    ///
+    /// If you want to remove the cells that are no longer within capacity,
+    /// call [`Self::truncate`], which will reset them to their default value.
+    fn set_row_capacity(&mut self, capacity: usize) {
+        self.row_cnt = cmp::min(capacity, ROW);
     }
 
     /// Will adjust the internal column count tracker to the specified capacity
     ///
     /// Note that this does **not** remove any cells from the table in their
-    /// old positions. To do that, call [`Self::truncate`].
+    /// old positions. Instead, this updates the virtual space within the
+    /// table that is made available for methods like [`Table::get_cell`].
+    ///
+    /// If you want to remove the cells that are no longer within capacity,
+    /// call [`Self::truncate`], which will reset them to their default value.
     fn set_column_capacity(&mut self, capacity: usize) {
         self.col_cnt = capacity;
     }
 }
 
 impl<T: Default, const ROW: usize> From<[Vec<T>; ROW]> for FixedRowTable<T, ROW> {
+    /// Creates a new table with maximum allocation of ROW for each column,
+    /// assuming that all provided rows have been filled
+    ///
+    /// If this is incorrect, adjust the virtual row and column counts with
+    /// [`Table::set_row_capacity`] and [`Table::set_column_capacity`] respectively.
     fn from(cells: [Vec<T>; ROW]) -> Self {
         let col_cnt = if ROW > 0 { cells[0].len() } else { 0 };
-        Self { cells, col_cnt }
+        Self {
+            cells,
+            row_cnt: ROW,
+            col_cnt,
+        }
     }
 }
 
@@ -194,29 +252,34 @@ mod tests {
     use super::*;
 
     #[test]
-    fn row_cnt_should_match_fixed_row_size() {
-        let table: FixedRowTable<usize, 0> = FixedRowTable::new();
+    fn row_cnt_should_be_adjustable_up_to_const_max() {
+        let mut table: FixedRowTable<usize, 0> = FixedRowTable::new();
+        assert_eq!(table.row_cnt(), 0);
+        table.set_row_capacity(1);
         assert_eq!(table.row_cnt(), 0);
 
-        let table: FixedRowTable<usize, 4> = FixedRowTable::new();
+        let mut table: FixedRowTable<usize, 4> = FixedRowTable::new();
+        assert_eq!(table.row_cnt(), 0);
+        table.set_row_capacity(5);
         assert_eq!(table.row_cnt(), 4);
     }
 
     #[test]
-    fn col_cnt_should_be_dynamic() {
-        let table: FixedRowTable<usize, 0> = FixedRowTable::new();
+    fn col_cnt_should_be_adjustable() {
+        let mut table: FixedRowTable<usize, 0> = FixedRowTable::new();
         assert_eq!(table.col_cnt(), 0);
+        table.set_column_capacity(999);
+        assert_eq!(table.col_cnt(), 999);
 
-        let mut table: FixedRowTable<usize, 1> = FixedRowTable::new();
-        table.push_column(vec![1, 2, 3]);
-        table.push_column(vec![1, 2, 3]);
-        table.push_column(vec![1, 2, 3]);
-
-        assert_eq!(table.col_cnt(), 3);
+        let mut table: FixedRowTable<usize, 4> = FixedRowTable::new();
+        assert_eq!(table.col_cnt(), 0);
+        table.set_column_capacity(999);
+        assert_eq!(table.col_cnt(), 999);
     }
 
     #[test]
     fn get_cell_should_return_ref_to_cell_at_location() {
+        // Sets capacity to that of the 2D array provided
         let table = FixedRowTable::from([vec!["a", "b"], vec!["c", "d"]]);
         assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"a"));
         assert_eq!(table.get_cell(0, 1).as_deref(), Some(&"b"));
@@ -226,19 +289,98 @@ mod tests {
     }
 
     #[test]
+    fn get_cell_should_respect_virtual_boundaries() {
+        // Sets capacity to that of the 2D array provided
+        let mut table = FixedRowTable::from([vec!["a", "b"], vec!["c", "d"]]);
+        assert_eq!(table.row_cnt(), 2);
+        assert_eq!(table.col_cnt(), 2);
+
+        // If we change the capacity to be smaller, get_cell should respect that
+        table.set_row_capacity(1);
+        table.set_column_capacity(1);
+        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"a"));
+        assert_eq!(table.get_cell(0, 1).as_deref(), None);
+        assert_eq!(table.get_cell(1, 0).as_deref(), None);
+        assert_eq!(table.get_cell(1, 1).as_deref(), None);
+
+        // Capacity changes don't actually overwrite anything
+        table.set_row_capacity(2);
+        table.set_column_capacity(2);
+        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"a"));
+        assert_eq!(table.get_cell(0, 1).as_deref(), Some(&"b"));
+        assert_eq!(table.get_cell(1, 0).as_deref(), Some(&"c"));
+        assert_eq!(table.get_cell(1, 1).as_deref(), Some(&"d"));
+    }
+
+    #[test]
     fn get_mut_cell_should_return_mut_ref_to_cell_at_location() {
         let mut table = FixedRowTable::from([vec!["a", "b"], vec!["c", "d"]]);
         *table.get_mut_cell(0, 0).unwrap() = "e";
+        *table.get_mut_cell(0, 1).unwrap() = "f";
+        *table.get_mut_cell(1, 0).unwrap() = "g";
+        *table.get_mut_cell(1, 1).unwrap() = "h";
+        assert_eq!(table.get_mut_cell(2, 0), None);
+
         assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"e"));
+        assert_eq!(table.get_cell(0, 1).as_deref(), Some(&"f"));
+        assert_eq!(table.get_cell(1, 0).as_deref(), Some(&"g"));
+        assert_eq!(table.get_cell(1, 1).as_deref(), Some(&"h"));
+    }
+
+    #[test]
+    fn get_mut_cell_should_respect_virtual_boundaries() {
+        let mut table = FixedRowTable::from([vec!["a", "b"], vec!["c", "d"]]);
+        assert_eq!(table.row_cnt(), 2);
+        assert_eq!(table.col_cnt(), 2);
+
+        // If we change the capacity to be smaller, get_mut_cell should respect that
+        table.set_row_capacity(1);
+        table.set_column_capacity(1);
+        assert!(table.get_mut_cell(0, 0).is_some());
+        assert!(table.get_mut_cell(0, 1).is_none());
+        assert!(table.get_mut_cell(1, 0).is_none());
+        assert!(table.get_mut_cell(1, 1).is_none());
     }
 
     #[test]
     fn insert_cell_should_return_previous_cell_and_overwrite_content() {
         let mut table: FixedRowTable<usize, 3> = FixedRowTable::new();
 
-        assert_eq!(table.insert_cell(0, 0, 123), Some(0));
+        assert_eq!(table.insert_cell(0, 0, 123), None);
         assert_eq!(table.insert_cell(0, 0, 999), Some(123));
         assert_eq!(table.get_cell(0, 0).as_deref(), Some(&999))
+    }
+
+    #[test]
+    fn insert_cell_should_respect_actual_boundaries() {
+        let mut table: FixedRowTable<usize, 1> = FixedRowTable::new();
+        assert_eq!(table.row_cnt(), 0);
+        assert_eq!(table.col_cnt(), 0);
+
+        // Can still create and expand within row in within
+        assert_eq!(table.insert_cell(0, 1, 123), None);
+        assert_eq!(table.get_cell(0, 1), Some(&123));
+
+        // Creating anything outside of the single row will yield nothing
+        assert_eq!(table.insert_cell(1, 0, 123), None);
+        assert_eq!(table.insert_cell(1, 1, 123), None);
+    }
+
+    #[test]
+    fn insert_cell_should_grow_virtual_boundaries_within_actual_limits() {
+        let mut table: FixedRowTable<usize, 3> = FixedRowTable::new();
+        assert_eq!(table.row_cnt(), 0);
+        assert_eq!(table.col_cnt(), 0);
+
+        // Updating outside boundaries won't change anything
+        table.insert_cell(3, 3, 123);
+        assert_eq!(table.row_cnt(), 0);
+        assert_eq!(table.col_cnt(), 0);
+
+        // Updating within limits should adjust accordingly
+        table.insert_cell(2, 2, 123);
+        assert_eq!(table.row_cnt(), 3);
+        assert_eq!(table.col_cnt(), 3);
     }
 
     #[test]
@@ -252,73 +394,31 @@ mod tests {
     }
 
     #[test]
-    fn truncate_should_remove_cells_outside_of_column_capacity_count() {
-        let mut table = FixedRowTable::from([
-            vec!["a", "b", "c"],
-            vec!["d", "e", "f"],
-            vec!["g", "h", "i"],
-        ]);
+    fn remove_cell_should_respect_virtual_boundaries() {
+        let mut table = FixedRowTable::from([vec![1, 2], vec![3, 4]]);
+        table.set_row_capacity(0);
+        table.set_column_capacity(0);
 
-        // Should do nothing if all cells are within capacities
-        table.truncate();
-        assert_eq!(
-            table
-                .iter()
-                .map(|(pos, x)| (pos.row, pos.col, *x))
-                .collect::<Vec<(usize, usize, &str)>>(),
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (0, 2, "c"),
-                (1, 0, "d"),
-                (1, 1, "e"),
-                (1, 2, "f"),
-                (2, 0, "g"),
-                (2, 1, "h"),
-                (2, 2, "i"),
-            ]
-        );
-
-        // Trucate from 3x3 to 3x2
-        table.set_column_capacity(table.col_cnt() - 1);
-        table.truncate();
-        assert_eq!(
-            table
-                .iter()
-                .map(|(pos, x)| (pos.row, pos.col, *x))
-                .collect::<Vec<(usize, usize, &str)>>(),
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (1, 0, "d"),
-                (1, 1, "e"),
-                (2, 0, "g"),
-                (2, 1, "h"),
-            ]
-        );
-    }
-
-    #[test]
-    fn shrink_to_fit_should_adjust_column_count_based_on_cell_positions() {
-        let mut table: FixedRowTable<&'static str, 3> = FixedRowTable::new();
-        assert_eq!(table.row_cnt(), 3);
+        assert_eq!(table.row_cnt(), 0);
         assert_eq!(table.col_cnt(), 0);
-
-        table.cells[0].extend(vec!["a", "b"]);
-        table.cells[1].extend(vec!["d", "e", "f"]);
-        table.cells[2].extend(vec!["g"]);
-        assert_eq!(table.row_cnt(), 3);
-        assert_eq!(table.col_cnt(), 0);
-
-        table.shrink_to_fit();
-        assert_eq!(table.row_cnt(), 3);
-        assert_eq!(table.col_cnt(), 3);
+        assert_eq!(table.remove_cell(0, 0), None);
     }
 
     #[test]
     fn index_by_row_and_column_should_return_cell_ref() {
         let table = FixedRowTable::from([vec![1, 2, 3]]);
         assert_eq!(table[(0, 1)], 2);
+    }
+
+    #[test]
+    #[should_panic]
+    fn index_by_row_and_column_should_respect_virtual_boundaries() {
+        let mut table = FixedRowTable::from([vec![1, 2, 3]]);
+        table.set_row_capacity(0);
+        table.set_column_capacity(0);
+
+        // Will cause panic because of virtual boundary reached
+        let _ = table[(0, 0)];
     }
 
     #[test]
@@ -337,6 +437,17 @@ mod tests {
         assert_eq!(table[(0, 0)], 1);
         assert_eq!(table[(0, 1)], 999);
         assert_eq!(table[(0, 2)], 3);
+    }
+
+    #[test]
+    #[should_panic]
+    fn index_mut_by_row_and_column_should_respect_virtual_boundaries() {
+        let mut table = FixedRowTable::from([vec![1, 2, 3]]);
+        table.set_row_capacity(0);
+        table.set_column_capacity(0);
+
+        // Will cause panic because of virtual boundary reached
+        table[(0, 0)] = 999;
     }
 
     #[test]
