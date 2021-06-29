@@ -3,8 +3,8 @@
 //! [![Build Status][build_img]][build_lnk]
 //! [![Crates.io][crates_img]][crates_lnk]
 //! [![Docs.rs][doc_img]][doc_lnk]
-//! [![memtable Minimum Supported Rust Version][memtable_msrv_img]][memtable_msrv_lnk]
-//! [![memtable-macros Minimum Supported Rust Version][memtable_macros_msrv_img]][memtable_macros_msrv_lnk]
+//! [![memtable MSRV][memtable_msrv_img]][memtable_msrv_lnk]
+//! [![memtable-macros MSRV][memtable_macros_msrv_img]][memtable_macros_msrv_lnk]
 //!
 //! ## Overview
 //!
@@ -146,6 +146,8 @@
 //! [crates_lnk]: https://crates.io/crates/memtable
 //! [doc_img]: https://docs.rs/memtable/badge.svg
 //! [doc_lnk]: https://docs.rs/memtable
+//! [memtable_msrv_img]: https://img.shields.io/badge/memtable-rustc_1.51+-blueviolet.svg
+//! [memtable_macros_msrv_img]: https://img.shields.io/badge/memtable_macros-rustc_1.51+-blueviolet.svg
 //! [memtable_msrv_lnk]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
 //! [memtable_macros_msrv_lnk]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
 
