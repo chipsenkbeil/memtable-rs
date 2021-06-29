@@ -3,7 +3,7 @@ use proc_macro_crate::{crate_name, FoundCrate};
 use syn::{parse_macro_input, parse_quote, DeriveInput, Ident, Path};
 
 /// Produces a token stream in the form of `::memtable` or renamed version
-pub fn entity_crate() -> darling::Result<Path> {
+pub fn memtable_crate() -> darling::Result<Path> {
     get_crate("memtable", true)
 }
 
@@ -40,7 +40,7 @@ pub fn do_derive(
     move |input: proc_macro::TokenStream| {
         let input = parse_macro_input!(input as DeriveInput);
 
-        let expanded = entity_crate()
+        let expanded = memtable_crate()
             .and_then(|root| f(root, input))
             .unwrap_or_else(|x| x.write_errors());
 

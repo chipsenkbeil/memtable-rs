@@ -101,7 +101,7 @@ impl Default for TableMode {
 
 /// Information for a field of a struct deriving table
 #[derive(Debug, FromField)]
-#[darling(attributes(table))]
+#[darling(attributes(column))]
 pub struct TableColumn {
     /// Name of the column field
     pub ident: Option<Ident>,
