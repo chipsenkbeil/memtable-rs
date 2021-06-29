@@ -10,7 +10,7 @@ use std::{
 #[cfg_attr(feature = "serde-1", serde_with::serde_as)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
-pub struct MemDynamicTable<T> {
+pub struct DynamicTable<T> {
     /// Represents the table's data (cells) as a mapping between a cell's
     /// position and its actual content (private)
     #[cfg_attr(feature = "serde-1", serde_as("Vec<(_, _)>"))]
@@ -25,7 +25,7 @@ pub struct MemDynamicTable<T> {
     col_cnt: usize,
 }
 
-impl<T> MemDynamicTable<T> {
+impl<T> DynamicTable<T> {
     /// Creates a new, empty table
     pub fn new() -> Self {
         Self::default()
@@ -54,12 +54,12 @@ impl<T> MemDynamicTable<T> {
     }
 
     /// Returns an iterator over the cells and their positions within the table
-    pub fn iter(&self) -> ZipPosition<&T, Cells<T, MemDynamicTable<T>>> {
+    pub fn iter(&self) -> ZipPosition<&T, Cells<T, DynamicTable<T>>> {
         self.into_iter()
     }
 }
 
-impl<T> Default for MemDynamicTable<T> {
+impl<T> Default for DynamicTable<T> {
     fn default() -> Self {
         Self {
             cells: HashMap::new(),
@@ -69,7 +69,7 @@ impl<T> Default for MemDynamicTable<T> {
     }
 }
 
-impl<T> Table for MemDynamicTable<T> {
+impl<T> Table for DynamicTable<T> {
     type Data = T;
 
     fn row_cnt(&self) -> usize {
@@ -102,7 +102,7 @@ impl<T> Table for MemDynamicTable<T> {
         self.cells.insert(Position { row, col }, value)
     }
 
-    fn remove_cell(&mut self, row: usize, col: usize) -> Option<T> {
+    fn remove_cell(&mut self, row: usize, col: usize) -> Option<Self::Data> {
         self.cells.remove(&Position { row, col })
     }
 
@@ -123,9 +123,9 @@ impl<T> Table for MemDynamicTable<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a MemDynamicTable<T> {
+impl<'a, T> IntoIterator for &'a DynamicTable<T> {
     type Item = (Position, &'a T);
-    type IntoIter = ZipPosition<&'a T, Cells<'a, T, MemDynamicTable<T>>>;
+    type IntoIter = ZipPosition<&'a T, Cells<'a, T, DynamicTable<T>>>;
 
     /// Converts into an iterator over the table's cells' positions and values
     fn into_iter(self) -> Self::IntoIter {
@@ -133,9 +133,9 @@ impl<'a, T> IntoIterator for &'a MemDynamicTable<T> {
     }
 }
 
-impl<T> IntoIterator for MemDynamicTable<T> {
+impl<T> IntoIterator for DynamicTable<T> {
     type Item = (Position, T);
-    type IntoIter = ZipPosition<T, IntoCells<T, MemDynamicTable<T>>>;
+    type IntoIter = ZipPosition<T, IntoCells<T, DynamicTable<T>>>;
 
     /// Converts into an iterator over the table's cells' positions and values
     fn into_iter(self) -> Self::IntoIter {
@@ -143,7 +143,7 @@ impl<T> IntoIterator for MemDynamicTable<T> {
     }
 }
 
-impl<T, V: Into<T>> FromIterator<(usize, usize, V)> for MemDynamicTable<T> {
+impl<T, V: Into<T>> FromIterator<(usize, usize, V)> for DynamicTable<T> {
     /// Produces a table from the provided iterator of (row, col, value)
     fn from_iter<I: IntoIterator<Item = (usize, usize, V)>>(iter: I) -> Self {
         let cells: HashMap<Position, T> = iter
@@ -154,7 +154,7 @@ impl<T, V: Into<T>> FromIterator<(usize, usize, V)> for MemDynamicTable<T> {
     }
 }
 
-impl<T, V: Into<T>> FromIterator<(Position, V)> for MemDynamicTable<T> {
+impl<T, V: Into<T>> FromIterator<(Position, V)> for DynamicTable<T> {
     /// Produces a table from the provided iterator of (position, value)
     fn from_iter<I: IntoIterator<Item = (Position, V)>>(iter: I) -> Self {
         let cells: HashMap<Position, T> = iter.into_iter().map(|(p, x)| (p, x.into())).collect();
@@ -162,7 +162,7 @@ impl<T, V: Into<T>> FromIterator<(Position, V)> for MemDynamicTable<T> {
     }
 }
 
-impl<T> From<HashMap<Position, T>> for MemDynamicTable<T> {
+impl<T> From<HashMap<Position, T>> for DynamicTable<T> {
     /// Creates a new table from the given hashmap of cells
     fn from(cells: HashMap<Position, T>) -> Self {
         let mut table = Self {
@@ -178,7 +178,7 @@ impl<T> From<HashMap<Position, T>> for MemDynamicTable<T> {
     }
 }
 
-impl<T> Index<(usize, usize)> for MemDynamicTable<T> {
+impl<T> Index<(usize, usize)> for DynamicTable<T> {
     type Output = T;
 
     /// Indexes into a table by a specific row and column, returning a
@@ -189,7 +189,7 @@ impl<T> Index<(usize, usize)> for MemDynamicTable<T> {
     }
 }
 
-impl<T> IndexMut<(usize, usize)> for MemDynamicTable<T> {
+impl<T> IndexMut<(usize, usize)> for DynamicTable<T> {
     /// Indexes into a table by a specific row and column, returning a mutable
     /// reference to the cell if it exists, otherwise panicking
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
@@ -215,49 +215,49 @@ mod tests {
 
     #[test]
     fn new_should_calculate_row_and_column_counts_from_max_row_and_column() {
-        let table = MemDynamicTable::from(make_empty_hashmap::<usize>());
+        let table = DynamicTable::from(make_empty_hashmap::<usize>());
         assert_eq!(table.row_cnt(), 0);
         assert_eq!(table.col_cnt(), 0);
 
-        let table = MemDynamicTable::from(make_hashmap(vec![(3, 2, "some value")]));
+        let table = DynamicTable::from(make_hashmap(vec![(3, 2, "some value")]));
         assert_eq!(table.row_cnt(), 4);
         assert_eq!(table.col_cnt(), 3);
 
-        let table = MemDynamicTable::from(make_hashmap(vec![(3, 0, "value"), (0, 5, "value")]));
+        let table = DynamicTable::from(make_hashmap(vec![(3, 0, "value"), (0, 5, "value")]));
         assert_eq!(table.row_cnt(), 4);
         assert_eq!(table.col_cnt(), 6);
     }
 
     #[test]
     fn get_cell_should_return_ref_to_cell_at_location() {
-        let table = MemDynamicTable::from(make_hashmap(vec![
+        let table = DynamicTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (1, 0, "c"),
             (1, 1, "d"),
         ]));
-        assert_eq!(table.get_cell(0, 0), Some(&"a"));
-        assert_eq!(table.get_cell(0, 1), Some(&"b"));
-        assert_eq!(table.get_cell(1, 0), Some(&"c"));
-        assert_eq!(table.get_cell(1, 1), Some(&"d"));
+        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"a"));
+        assert_eq!(table.get_cell(0, 1).as_deref(), Some(&"b"));
+        assert_eq!(table.get_cell(1, 0).as_deref(), Some(&"c"));
+        assert_eq!(table.get_cell(1, 1).as_deref(), Some(&"d"));
         assert_eq!(table.get_cell(1, 2), None);
     }
 
     #[test]
     fn get_mut_cell_should_return_mut_ref_to_cell_at_location() {
-        let mut table = MemDynamicTable::from(make_hashmap(vec![
+        let mut table = DynamicTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (1, 0, "c"),
             (1, 1, "d"),
         ]));
         *table.get_mut_cell(0, 0).unwrap() = "e";
-        assert_eq!(table.get_cell(0, 0), Some(&"e"));
+        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"e"));
     }
 
     #[test]
     fn insert_cell_should_extend_max_row_size_if_adding_beyond_max_row() {
-        let mut table = MemDynamicTable::new();
+        let mut table = DynamicTable::new();
 
         table.insert_cell(0, 0, "");
         table.insert_cell(0, 1, "");
@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     fn insert_cell_should_extend_max_column_size_if_adding_beyond_max_column() {
-        let mut table = MemDynamicTable::new();
+        let mut table = DynamicTable::new();
 
         table.insert_cell(0, 0, "");
         table.insert_cell(1, 0, "");
@@ -289,16 +289,16 @@ mod tests {
 
     #[test]
     fn insert_cell_should_return_previous_cell_and_overwrite_content() {
-        let mut table = MemDynamicTable::new();
+        let mut table = DynamicTable::new();
 
         assert!(table.insert_cell(0, 0, "test").is_none());
         assert_eq!(table.insert_cell(0, 0, "other"), Some("test"));
-        assert_eq!(table.get_cell(0, 0), Some(&"other"))
+        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"other"))
     }
 
     #[test]
     fn remove_cell_should_return_cell_that_is_removed() {
-        let mut table: MemDynamicTable<&'static str> =
+        let mut table: DynamicTable<&'static str> =
             vec![(0, 0, "a"), (1, 1, "b")].into_iter().collect();
 
         assert_eq!(table.remove_cell(0, 0), Some("a"));
@@ -307,7 +307,7 @@ mod tests {
 
     #[test]
     fn truncate_should_remove_cells_outside_of_row_and_column_capacity_counts() {
-        let mut table = MemDynamicTable::from(make_hashmap(vec![
+        let mut table = DynamicTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (0, 2, "c"),
@@ -354,7 +354,7 @@ mod tests {
 
     #[test]
     fn shrink_to_fit_should_adjust_row_and_column_counts_based_on_cell_positions() {
-        let mut table: MemDynamicTable<&'static str> = MemDynamicTable::new();
+        let mut table: DynamicTable<&'static str> = DynamicTable::new();
         assert_eq!(table.row_cnt(), 0);
         assert_eq!(table.col_cnt(), 0);
 
@@ -370,7 +370,7 @@ mod tests {
 
     #[test]
     fn index_by_row_and_column_should_return_cell_ref() {
-        let mut table = MemDynamicTable::new();
+        let mut table = DynamicTable::new();
         table.push_row(vec![1, 2, 3]);
 
         assert_eq!(table[(0, 1)], 2);
@@ -379,7 +379,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn index_by_row_and_column_should_panic_if_cell_not_found() {
-        let mut table = MemDynamicTable::new();
+        let mut table = DynamicTable::new();
         table.push_row(vec![1, 2, 3]);
 
         let _ = table[(1, 0)];
@@ -387,7 +387,7 @@ mod tests {
 
     #[test]
     fn index_mut_by_row_and_column_should_return_mutable_cell() {
-        let mut table = MemDynamicTable::new();
+        let mut table = DynamicTable::new();
         table.push_row(vec![1, 2, 3]);
 
         table[(0, 1)] = 999;
@@ -404,7 +404,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn index_mut_by_row_and_column_should_panic_if_cell_not_found() {
-        let mut table = MemDynamicTable::new();
+        let mut table = DynamicTable::new();
         table.push_row(vec![1, 2, 3]);
 
         table[(1, 0)] = 999;

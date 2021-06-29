@@ -1,7 +1,11 @@
-mod mem;
-pub use mem::*;
+mod dynamic;
+pub use dynamic::DynamicTable;
 
-// #[cfg(feature = "sled")]
-// mod sled;
-// #[cfg(feature = "sled")]
-// pub use sled::*;
+mod fixed;
+pub use fixed::FixedTable;
+
+mod col;
+pub use col::FixedColumnTable;
+
+mod row;
+pub use row::FixedRowTable;

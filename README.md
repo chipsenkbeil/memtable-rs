@@ -1,8 +1,10 @@
-# MemDynamicTable - Inmemory tables for use in Rust
+# DynamicTable - Inmemory tables for use in Rust
 
 [![Build Status][build_img]][build_lnk]
 [![Crates.io][crates_img]][crates_lnk]
 [![Docs.rs][doc_img]][doc_lnk]
+[![memtable Minimum Supported Rust Version][memtable_msrv_img]][memtable_msrv_lnk]
+[![memtable-macros Minimum Supported Rust Version][memtable_macros_msrv_img]][memtable_macros_msrv_lnk]
 
 ## Overview
 
@@ -16,10 +18,10 @@ features from either.
 
 ```toml
 [dependencies]
-memtable = "0.1"
+memtable = "0.2"
 
 # Optionally, include features like `macros`
-# memtable = { version = "0.1", features = ["macros"] }
+memtable = { version = "0.2", features = ["macros"] }
 ```
 
 ## Usage
@@ -38,7 +40,7 @@ let mut table = FixedTable::from([
 
 // Examine one of the values, replace it, and examine again
 assert_eq!(table[(1, 2)], 6);
-table.insert_cell(1, 2, 999);
+table[(1, 2)] = 999;
 assert_eq!(table[(1, 2)], 999);
 ```
 
@@ -46,7 +48,7 @@ assert_eq!(table[(1, 2)], 999);
 
 In the core library, you will find four primary tables:
 
-- `MemDynamicTable`: table with a dynamic capacity for rows & columns
+- `DynamicTable`: table with a dynamic capacity for rows & columns
 - `FixedTable`: table with a fixed capacity for rows & columns
 - `FixedRowTable`: table with a fixed capacity for rows & dynamic capacity for columns
 - `FixedColumnTable`: table with a dynamic capacity for rows & fixed capacity for columns
@@ -60,7 +62,7 @@ In the core library, you will find four primary tables:
   position and getting the current row & column of
   the iterator
 
-## The Extensions
+## The Features
 
 Alongside the essentials, the library also provides several features that
 provide extensions to the table arsenal:
@@ -69,8 +71,10 @@ provide extensions to the table arsenal:
   (convert an inmemory table to CSV)
 - **cell**: enables `Cell2` and more up to `Cell26`, which represent generic
   enums that can be used as the data type for a table to enable multiple
-  data types within a table (e.g. `MemDynamicTable<Cell2<String, bool>>`)
+  data types within a table (e.g. `DynamicTable<Cell2<String, bool>>`)
 - **serde**: enables *serde* support on all table & cell implementations
+- **sled**: enables `SledTable`, which provides persistent storage on top of
+  other tables via the sled database
 - **macros**: enables `Table` macro to derive new struct that implements the
   `Table` trait to be able to store some struct into a dedicated, inmemory table
 
@@ -134,3 +138,7 @@ dual licensed as above, without any additional terms or conditions.
 [crates_lnk]: https://crates.io/crates/memtable
 [doc_img]: https://docs.rs/memtable/badge.svg
 [doc_lnk]: https://docs.rs/memtable
+[memtable_msrv_img]: https://img.shields.io/badge/memtable-rustc_1.51+-blueviolet.svg
+[memtable_macros_msrv_img]: https://img.shields.io/badge/memtable_macros-rustc_1.51+-blueviolet.svg
+[memtable_msrv_lnk]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
+[memtable_macros_msrv_lnk]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html

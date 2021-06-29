@@ -1,4 +1,4 @@
-//! # MemDynamicTable - Inmemory tables for use in Rust
+//! # DynamicTable - Inmemory tables for use in Rust
 //!
 //! [![Build Status][build_img]][build_lnk]
 //! [![Crates.io][crates_img]][crates_lnk]
@@ -16,10 +16,10 @@
 //!
 //! ```toml
 //! [dependencies]
-//! memtable = "0.1"
+//! memtable = "0.2"
 //!
 //! # Optionally, include features like `macros`
-//! # memtable = { version = "0.1", features = ["macros"] }
+//! # memtable = { version = "0.2", features = ["macros"] }
 //! ```
 //!
 //! ## Usage
@@ -46,7 +46,7 @@
 //!
 //! In the core library, you will find four primary tables:
 //!
-//! - [`MemDynamicTable`]: table with a dynamic capacity for rows & columns
+//! - [`DynamicTable`]: table with a dynamic capacity for rows & columns
 //! - [`FixedTable`]: table with a fixed capacity for rows & columns
 //! - [`FixedRowTable`]: table with a fixed capacity for rows & dynamic capacity for columns
 //! - [`FixedColumnTable`]: table with a dynamic capacity for rows & fixed capacity for columns
@@ -60,7 +60,7 @@
 //!                       position and getting the current row & column of
 //!                       the iterator
 //!
-//! ## The Extensions
+//! ## The Extra Features
 //!
 //! Alongside the essentials, the library also provides several features that
 //! provide extensions to the table arsenal:
@@ -71,8 +71,10 @@
 //! - **cell**: enables [`exts::cell::Cell2`] and more up to
 //!             [`exts::cell::Cell26`], which represent generic enums that can
 //!             be used as the data type for a table to enable multiple data
-//!             types within a table (e.g. `MemDynamicTable<Cell2<String, bool>>`)
+//!             types within a table (e.g. `DynamicTable<Cell2<String, bool>>`)
 //! - **serde**: enables *serde* support on all table & cell implementations
+//! - **sled**:  enables [`exts::sled::SledTable`], which provides persistent
+//!              storage on top of other tables via the sled database
 //! - **macros**: enables [`macro@Table`] macro to derive new struct that
 //!               implements the [`Table`] trait to be able to store some
 //!               struct into a dedicated, inmemory table
@@ -147,3 +149,6 @@ pub use memtable_core::*;
 
 #[cfg(feature = "macros")]
 pub use memtable_macros::*;
+
+#[cfg(all(doctest, feature = "macros"))]
+doc_comment::doctest!("../README.md");

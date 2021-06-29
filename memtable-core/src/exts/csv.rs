@@ -23,7 +23,7 @@ pub trait FromCsv {
     }
 }
 
-impl<T: Table<Data = String>> FromCsv for T {
+impl<T: Table<Data = String> + Default> FromCsv for T {
     type Output = T;
 
     fn from_csv<R: io::Read>(reader: R) -> io::Result<Self::Output> {
@@ -85,7 +85,7 @@ mod tests {
 
     // NOTE: For simplicity, we use our one concrete implementor of the table
     //       trait as our test table
-    type TestTable<T> = crate::MemDynamicTable<T>;
+    type TestTable<T> = crate::DynamicTable<T>;
 
     #[test]
     fn from_csv_str_should_convert_into_table() {

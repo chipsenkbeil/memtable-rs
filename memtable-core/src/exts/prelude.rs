@@ -1,4 +1,4 @@
-//! # The MemDynamicTable Extensions Prelude
+//! # The DynamicTable Extensions Prelude
 //!
 //! The memtable library comes with a variety of tools to help with building,
 //! parsing, and transforming tables. While these could be brought in via a
@@ -7,6 +7,11 @@
 //! without polluting the namespace with public modules exposed by this crate.
 //!
 //! # Prelude contents
+//!
+//! If the `sled` feature is enabled, the prelude re-exports the following:
+//!
+//! * [`sled::SledTable`] struct, which wraps around other tables and provides
+//!   persistent storage via the sled database
 //!
 //! If the `csv` feature is enabled, the prelude re-exports the following:
 //!
@@ -77,3 +82,8 @@ pub use crate::exts::cell::*;
 #[cfg_attr(feature = "docs", doc(cfg(csv)))]
 #[doc(inline)]
 pub use crate::exts::csv::{FromCsv, ToCsv};
+
+#[cfg(feature = "sled-1")]
+#[cfg_attr(feature = "docs", doc(cfg(sled)))]
+#[doc(inline)]
+pub use crate::exts::sled::SledTable;

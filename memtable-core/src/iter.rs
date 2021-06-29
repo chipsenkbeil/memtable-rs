@@ -476,7 +476,7 @@ mod tests {
 
     // NOTE: For simplicity, we use our one concrete implementor of the table
     //       trait as our test table
-    type TestTable<T> = crate::MemDynamicTable<T>;
+    type TestTable<T> = crate::DynamicTable<T>;
 
     fn make_hashmap<T>(items: Vec<(usize, usize, T)>) -> HashMap<Position, T> {
         items
@@ -550,7 +550,10 @@ mod tests {
             (2, 1, "f"),
         ]));
 
-        assert_eq!(table.row(1).collect::<Vec<&&str>>(), vec![&"c", &"d"]);
+        assert_eq!(
+            table.row(1).map(|x| *x).collect::<Vec<&str>>(),
+            vec!["c", "d"]
+        );
     }
 
     #[test]
@@ -715,7 +718,10 @@ mod tests {
             (1, 2, "f"),
         ]));
 
-        assert_eq!(table.column(1).collect::<Vec<&&str>>(), vec![&"b", &"e"]);
+        assert_eq!(
+            table.column(1).map(|x| *x).collect::<Vec<&str>>(),
+            vec!["b", "e"]
+        );
     }
 
     #[test]
@@ -847,8 +853,8 @@ mod tests {
         ]));
 
         assert_eq!(
-            table.cells().collect::<Vec<&&str>>(),
-            vec![&"a", &"b", &"c", &"d", &"e", &"f"]
+            table.cells().map(|x| *x).collect::<Vec<&str>>(),
+            vec!["a", "b", "c", "d", "e", "f"]
         );
     }
 
