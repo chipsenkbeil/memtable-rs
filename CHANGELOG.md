@@ -6,23 +6,61 @@
 
 ### Added
 
-- New `sled` feature that enables managing tables in [sled](https://github.com/spacejam/sled)
-  instead of a mixture of `HashMap<...>` and arrays
+- New `sled` feature that provides a new table wrapper `SledTable` that uses
+  [sled](https://github.com/spacejam/sled) as a replication and persistence
+  layer for an inmemory table
+- New macro attribute `mode` at the table level that supports using a different
+  table to power the typed version generated. Three types are `dynamic`
+  (default), `fixed_column` where the max column is set to number of fields
+  in struct, and `fixed` where the max column is set the same as `fixed_column`
+  but you also specify a maximum number of rows:
+
+  ```rust
+  use memtable::Table;
+
+  // Creates a table that can have a dynamic number of rows and columns
+  #[derive(Table)]
+  #[table(mode = "dynamic")]
+  struct DataSource1 {
+    field1: String,
+    field2: bool,
+  }
+
+  // Creates a table that can have a dynamic number of rows with a fixed
+  // set of columns: in this case COL is set to 2
+  #[derive(Table)]
+  #[table(mode = "fixed_column")]
+  struct DataSource1 {
+    field1: String,
+    field2: bool,
+  }
+
+  // Creates a table that has a fixed number of rows and columns, where the
+  // max columns is determined by the number of fields (2) and the rows is
+  // explicitly highlighted (such as 25 rows)
+  #[derive(Table)]
+  #[table(mode(fixed(rows = "25")))]
+  struct DataSource1 {
+    field1: String,
+    field2: bool,
+  }
+  ```
 
 ### Changed
 
-- Renamed tables
-  - `MemTable` to `MemDynamicTable`
-  - `FixedTable` to `MemFixedTable`
-  - `FixedRowTable` to `MemFixedRowTable`
-  - `FixedColumnTable` to `MemFixedColumnTable`
-- Updated `serde::Deserialize` of `MemFixedTable`, `MemFixedRowTable`, and
-  `MemFixedColumnTable` to allocate inline instead of creating an initial array
+- Renamed `MemTable` to `DynamicTable`
+- Updated `serde::Deserialize` of `FixedTable`, `FixedRowTable`, and
+  `FixedColumnTable` to allocate inline instead of creating an initial array
   that is pre-allocated
     - Internally added `utils::try_make_array` and `utils::try_make_table_array`
       that allocate an array by creating one element at a time, supporting
       failures to create new elements and automatically handling proper
       dropping of a partially-created array
+- Readjusted `FixedTable`, `FixedRowTable`, and `FixedColumnTable` to work in
+  a more expected manor where they maintain virtual capacities that grow &
+  shrink, do not return "uninitialized data" when accessing out of bounds
+  (return `None` instead of `Some(Default::default()))`, and properly truncate
+  values by filling in with a default when requested
 
 ## [0.1.0] - 2021-06-27
 

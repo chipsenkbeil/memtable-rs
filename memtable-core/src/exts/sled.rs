@@ -227,7 +227,7 @@ mod utils {
         Tree,
     };
     use serde::{Deserialize, Serialize};
-    use std::{fmt, io};
+    use std::{fmt, io, mem};
 
     const ROW_CNT_KEY: &str = "row_cnt";
     const COL_CNT_KEY: &str = "col_cnt";
@@ -372,7 +372,7 @@ mod utils {
     }
 
     fn make_cell_key(row: usize, col: usize) -> Vec<u8> {
-        let mut buf = Vec::with_capacity((2 * usize::BITS / 8) as usize);
+        let mut buf = Vec::with_capacity((2 * mem::size_of::<usize>()) as usize);
         buf.extend(&row.to_be_bytes());
         buf.extend(&col.to_be_bytes());
 
