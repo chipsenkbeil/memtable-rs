@@ -3,6 +3,7 @@
 [![Build Status][build_img]][build_lnk]
 [![Crates.io][crates_img]][crates_lnk]
 [![Docs.rs][doc_img]][doc_lnk]
+[![rustc 1.51+]][rustc_version]
 
 ## Overview
 
@@ -136,3 +137,5 @@ dual licensed as above, without any additional terms or conditions.
 [crates_lnk]: https://crates.io/crates/memtable
 [doc_img]: https://docs.rs/memtable/badge.svg
 [doc_lnk]: https://docs.rs/memtable
+[rustc 1.51+]: https://img.shields.io/badge/memtable-rustc_1.51+-blueviolet.svg
+[rustc_version]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
