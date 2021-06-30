@@ -112,7 +112,7 @@ assert_eq!(*age, 51);
 
 // Tables of course provide a variety of other methods to inspect data
 assert_eq!(
-    table.name_column().collect::<Vec<&String>>(),
+    table.column_name().collect::<Vec<&String>>(),
     vec!["Fred Flintstone", "Wilma Flintstone"],
 );
 ```

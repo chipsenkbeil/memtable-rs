@@ -1,19 +1,31 @@
 use super::{utils, TableColumn};
+use darling::ast::Style;
 use quote::format_ident;
 use syn::{parse_quote, Ident, ItemFn, Path, Type};
 
 pub struct Args<'a> {
     pub root: &'a Path,
+    pub style: Style,
     pub columns: &'a [&'a TableColumn],
 }
 
 pub fn make(args: Args) -> ItemFn {
-    let Args { root, columns } = args;
+    let Args {
+        root,
+        style,
+        columns,
+    } = args;
 
     let variant_tys = utils::make_variant_types(columns);
     let get_cell_fns: Vec<Ident> = utils::make_snake_idents(columns)
         .iter()
-        .map(|name| format_ident!("get_{}", name))
+        .map(|name| {
+            format_ident!(
+                "get_cell{}{}",
+                if style.is_tuple() { "" } else { "_" },
+                name
+            )
+        })
         .collect();
 
     // (type1, type2, ...)

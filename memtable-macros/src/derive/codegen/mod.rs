@@ -1,3 +1,4 @@
+pub mod constants;
 pub mod data;
 pub mod methods;
 pub mod parts;
@@ -33,8 +34,9 @@ pub fn make_table_impl(args: TableImplArgs) -> ItemImpl {
 
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
+    let column_names_const =
+        constants::column_names::make(constants::column_names::Args { columns });
     let new_fn = methods::new::make(methods::new::Args {});
-    let column_names_fn = methods::column_names::make(methods::column_names::Args { columns });
     let column_by_name_fn = methods::column_by_name::make(methods::column_by_name::Args {
         root,
         mode,
@@ -51,7 +53,11 @@ pub fn make_table_impl(args: TableImplArgs) -> ItemImpl {
             columns,
         });
     let rows_fn = methods::rows::make(methods::rows::Args { root, columns });
-    let row_fn = methods::row::make(methods::row::Args { root, columns });
+    let row_fn = methods::row::make(methods::row::Args {
+        root,
+        style,
+        columns,
+    });
     let insert_row_fn = methods::insert_row::make(methods::insert_row::Args {
         root,
         generics,
@@ -77,17 +83,18 @@ pub fn make_table_impl(args: TableImplArgs) -> ItemImpl {
         origin_struct_name,
     });
 
-    let get_cell_fns = methods::make_get_cell_fns(root, table_data_name, columns);
-    let get_mut_cell_fns = methods::make_get_mut_cell_fns(root, table_data_name, columns);
-    let replace_cell_fns = methods::make_replace_cell_fns(root, table_data_name, columns);
-    let column_fns = methods::make_column_fns(root, table_data_name, columns);
-    let into_column_fns = methods::make_into_column_fns(root, table_data_name, columns);
+    let get_cell_fns = methods::make_get_cell_fns(root, style, table_data_name, columns);
+    let get_mut_cell_fns = methods::make_get_mut_cell_fns(root, style, table_data_name, columns);
+    let replace_cell_fns = methods::make_replace_cell_fns(root, style, table_data_name, columns);
+    let column_fns = methods::make_column_fns(root, style, table_data_name, columns);
+    let into_column_fns = methods::make_into_column_fns(root, style, table_data_name, columns);
 
     parse_quote! {
         #[automatically_derived]
         impl #impl_generics #table_name #ty_generics #where_clause {
+            #column_names_const
+
             #new_fn
-            #column_names_fn
             #column_by_name_fn
             #into_column_by_name_fn
             #rows_fn

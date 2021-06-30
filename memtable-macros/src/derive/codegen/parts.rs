@@ -1,6 +1,8 @@
 use super::{utils, TableColumn};
 use darling::ast::Style;
-use syn::{parse_quote, Expr, Generics, Ident, ItemImpl};
+use syn::{
+    parse_quote, punctuated::Punctuated, token::Comma, Expr, FnArg, Generics, Ident, ItemImpl,
+};
 
 pub struct Args<'a> {
     pub origin_struct_name: &'a Ident,
@@ -33,9 +35,18 @@ pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
         }
     };
 
-    let (args, body): (, Expr) = match style {
-        Style::Tuple => parse_quote!(Self ( #(#field),* )),
-        Style::Struct => parse_quote!(Self { #(#field),* }),
+    let (args, body): (Punctuated<FnArg, Comma>, Expr) = match style {
+        Style::Tuple => {
+            let variant = utils::make_snake_idents(columns);
+            (
+                parse_quote!((#(#variant),*): (#(#ty),*)),
+                parse_quote!(Self ( #(#variant),* )),
+            )
+        }
+        Style::Struct => (
+            parse_quote!((#(#field),*): (#(#ty),*)),
+            parse_quote!(Self { #(#field),* }),
+        ),
         Style::Unit => unreachable!(),
     };
 
@@ -45,7 +56,7 @@ pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
             for #origin_struct_name #ty_generics #where_clause
         {
             /// Convert from tuple of fields to struct
-            fn from((#(#field),*): (#(#ty),*)) -> Self {
+            fn from(#args) -> Self {
                 #body
             }
         }

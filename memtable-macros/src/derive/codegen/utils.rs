@@ -1,4 +1,5 @@
 use super::{TableColumn, TableMode};
+use darling::ast::Style;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_quote, Generics, Ident, LitInt, LitStr, Path, Type};
@@ -90,16 +91,25 @@ pub struct VariantMethodIdents {
     pub into_variant: Vec<Ident>,
 }
 
-pub fn make_variant_method_idents(columns: &[&TableColumn]) -> VariantMethodIdents {
+pub fn make_variant_method_idents(style: Style, columns: &[&TableColumn]) -> VariantMethodIdents {
     let method_names: Vec<(Ident, Ident, Ident, Ident)> = make_snake_idents(columns)
         .into_iter()
         .map(|suffix| {
-            (
-                format_ident!("is_{}", suffix),
-                format_ident!("as_{}", suffix),
-                format_ident!("as_mut_{}", suffix),
-                format_ident!("into_{}", suffix),
-            )
+            if style.is_struct() {
+                (
+                    format_ident!("is_{}", suffix),
+                    format_ident!("as_{}", suffix),
+                    format_ident!("as_mut_{}", suffix),
+                    format_ident!("into_{}", suffix),
+                )
+            } else {
+                (
+                    format_ident!("is{}", suffix),
+                    format_ident!("as{}", suffix),
+                    format_ident!("as_mut{}", suffix),
+                    format_ident!("into{}", suffix),
+                )
+            }
         })
         .collect();
     let (is_variant, as_variant, as_mut_variant, into_variant) = method_names.into_iter().fold(

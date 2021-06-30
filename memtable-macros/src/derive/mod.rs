@@ -36,6 +36,7 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
         default_impl: data_default_impl,
     } = codegen::data::make(codegen::data::Args {
         vis,
+        style,
         mode,
         table_data_name: &table_data_name,
         generics,

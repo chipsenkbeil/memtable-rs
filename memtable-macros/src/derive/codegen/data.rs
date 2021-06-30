@@ -1,10 +1,11 @@
 use super::{utils, TableColumn, TableMode};
-use darling::util::PathList;
+use darling::{ast::Style, util::PathList};
 use quote::quote;
 use syn::{parse_quote, Generics, Ident, ItemEnum, ItemImpl, Visibility};
 
 pub struct Args<'a> {
     pub mode: TableMode,
+    pub style: Style,
     pub vis: &'a Visibility,
     pub table_data_name: &'a Ident,
     pub generics: &'a Generics,
@@ -21,6 +22,7 @@ pub struct Return {
 pub fn make(args: Args) -> Return {
     let Args {
         mode,
+        style,
         vis,
         table_data_name,
         generics,
@@ -36,7 +38,7 @@ pub fn make(args: Args) -> Return {
         as_variant,
         as_mut_variant,
         into_variant,
-    } = utils::make_variant_method_idents(columns);
+    } = utils::make_variant_method_idents(style, columns);
 
     // Support forwading derive attributes
     let derive_attr = derive

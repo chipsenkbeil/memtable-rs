@@ -22,7 +22,7 @@ pub fn make(args: Args) -> ItemFn {
     let (_, ty_generics, _) = generics.split_for_impl();
     let fields = utils::make_field_tokens(columns);
     let utils::VariantMethodIdents { into_variant, .. } =
-        utils::make_variant_method_idents(columns);
+        utils::make_variant_method_idents(style, columns);
     let bug_msg = utils::bug_str();
 
     let create_struct_expr: Expr = match style {
