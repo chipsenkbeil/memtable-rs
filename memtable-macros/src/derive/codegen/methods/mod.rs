@@ -1,6 +1,5 @@
 pub mod column;
 pub mod column_by_name;
-pub mod column_names;
 pub mod get_cell;
 pub mod get_mut_cell;
 pub mod insert_row;
@@ -15,17 +14,20 @@ pub mod row;
 pub mod rows;
 
 use super::{utils, TableColumn, TableMode};
+use darling::ast::Style;
 use quote::format_ident;
 use syn::{Ident, ItemFn, Path, Type};
 
 pub fn make_get_cell_fns(
     root: &Path,
+    style: Style,
     table_data_name: &Ident,
     columns: &[&TableColumn],
 ) -> Vec<ItemFn> {
     make_many(
+        style,
         columns,
-        |name| format_ident!("get_{}", name),
+        |name| format_ident!("get_cell{}{}", u(style), name),
         |args| {
             let ManyArgs {
                 method_name,
@@ -49,12 +51,14 @@ pub fn make_get_cell_fns(
 
 pub fn make_get_mut_cell_fns(
     root: &Path,
+    style: Style,
     table_data_name: &Ident,
     columns: &[&TableColumn],
 ) -> Vec<ItemFn> {
     make_many(
+        style,
         columns,
-        |name| format_ident!("get_mut_{}", name),
+        |name| format_ident!("get_mut_cell{}{}", u(style), name),
         |args| {
             let ManyArgs {
                 method_name,
@@ -78,12 +82,14 @@ pub fn make_get_mut_cell_fns(
 
 pub fn make_column_fns(
     root: &Path,
+    style: Style,
     table_data_name: &Ident,
     columns: &[&TableColumn],
 ) -> Vec<ItemFn> {
     make_many(
+        style,
         columns,
-        |name| format_ident!("{}_column", name),
+        |name| format_ident!("column{}{}", u(style), name),
         |args| {
             let ManyArgs {
                 method_name,
@@ -107,12 +113,14 @@ pub fn make_column_fns(
 
 pub fn make_into_column_fns(
     root: &Path,
+    style: Style,
     table_data_name: &Ident,
     columns: &[&TableColumn],
 ) -> Vec<ItemFn> {
     make_many(
+        style,
         columns,
-        |name| format_ident!("into_{}_column", name),
+        |name| format_ident!("into_column{}{}", u(style), name),
         |args| {
             let ManyArgs {
                 method_name,
@@ -136,12 +144,14 @@ pub fn make_into_column_fns(
 
 pub fn make_replace_cell_fns(
     root: &Path,
+    style: Style,
     table_data_name: &Ident,
     columns: &[&TableColumn],
 ) -> Vec<ItemFn> {
     make_many(
+        style,
         columns,
-        |name| format_ident!("replace_{}", name),
+        |name| format_ident!("replace_cell{}{}", u(style), name),
         |args| {
             let ManyArgs {
                 method_name,
@@ -176,6 +186,7 @@ struct ManyArgs<'a> {
 }
 
 fn make_many(
+    style: Style,
     columns: &[&TableColumn],
     mut make_method_name: impl FnMut(&Ident) -> Ident,
     mut make_fn: impl FnMut(ManyArgs) -> ItemFn,
@@ -188,7 +199,7 @@ fn make_many(
         as_mut_variant,
         into_variant,
         ..
-    } = utils::make_variant_method_idents(columns);
+    } = utils::make_variant_method_idents(style, columns);
     let snake_idents = utils::make_snake_idents(columns);
     let variants = utils::make_variant_idents(columns);
 
@@ -207,4 +218,13 @@ fn make_many(
         fns.push(make_fn(args));
     }
     fns
+}
+
+/// Returns _ if style is not a tuple struct (so no extra _ prefix)
+fn u(style: Style) -> &'static str {
+    if !style.is_tuple() {
+        "_"
+    } else {
+        ""
+    }
 }

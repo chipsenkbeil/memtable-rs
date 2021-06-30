@@ -1,58 +1,61 @@
 use memtable_core::Table;
 use memtable_macros::Table;
-use std::{convert::TryFrom, path::Path};
+use std::convert::TryFrom;
 
-// Struct should be supported with all primitive types
 #[derive(Debug, PartialEq, Eq, Table)]
-#[table(mode = "dynamic")]
-struct MyRow {
-    field1: bool,
-    field2: usize,
+struct MyTuple(bool, usize);
+
+#[test]
+fn should_support_tuple_structs() {
+    #[derive(Table)]
+    struct MyTuple(u8, String);
+
+    let mut table = MyTupleTable::new();
+    table.push_row(MyTuple(123, String::from("hello world")));
 }
 
-// Struct should support generics
-#[derive(Table)]
-#[table(mode = "dynamic")]
-struct GenericRow<A, B> {
-    field1: A,
-    field2: B,
+#[test]
+fn should_support_tuple_structs_with_generics() {
+    #[derive(Table)]
+    struct MyTuple<A, B>(A, B);
+
+    let mut table = MyTupleTable::new();
+    table.push_row(MyTuple(123, "hello world"));
 }
 
-// Struct sohuld support lifetimes
-#[derive(Table)]
-#[table(mode = "dynamic")]
-struct LifetimeRow<'a> {
-    field1: &'a str,
-    field2: &'a Path,
+#[test]
+fn should_support_tuple_structs_with_lifetimes() {
+    #[derive(Table)]
+    struct MyTuple<'a>(&'a u8, &'a str);
+
+    let mut table = MyTupleTable::new();
+
+    let data = (123, String::from("hello world"));
+    table.push_row(MyTuple(&data.0, &data.1));
 }
 
 #[test]
 fn should_support_retrieving_column_names() {
-    assert_eq!(MyRowTable::COLUMN_NAMES, &["field1", "field2"]);
-    assert_eq!(
-        GenericRowTable::<u8, u8>::COLUMN_NAMES,
-        &["field1", "field2"]
-    );
-    assert_eq!(LifetimeRowTable::COLUMN_NAMES, &["field1", "field2"]);
+    assert_eq!(MyTupleTable::COLUMN_NAMES, &["0", "1"]);
 }
 
 #[test]
 fn should_support_retrieving_columns_by_name() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
     let column: Vec<bool> = table
-        .column_by_name("field1")
+        .column_by_name("0")
         .unwrap()
-        .filter_map(|x| x.as_field1().copied())
+        .filter_map(|x| x.as_0().copied())
         .collect();
     assert_eq!(column, vec![false, true]);
 
     let column: Vec<usize> = table
-        .column_by_name("field2")
+        .column_by_name("1")
         .unwrap()
-        .filter_map(|x| x.as_field2().copied())
+        .filter_map(|x| x.as_1().copied())
         .collect();
     assert_eq!(column, vec![123, 999]);
 
@@ -61,29 +64,29 @@ fn should_support_retrieving_columns_by_name() {
 
 #[test]
 fn should_support_converting_into_columns_by_name() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
     let column: Vec<bool> = table
-        .into_column_by_name("field1")
+        .into_column_by_name("0")
         .unwrap()
-        .filter_map(MyRowTableData::into_field1)
+        .filter_map(MyTupleTableData::into_0)
         .collect();
     assert_eq!(column, vec![false, true]);
 
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
     let column: Vec<usize> = table
-        .into_column_by_name("field2")
+        .into_column_by_name("1")
         .unwrap()
-        .filter_map(MyRowTableData::into_field2)
+        .filter_map(MyTupleTableData::into_1)
         .collect();
     assert_eq!(column, vec![123, 999]);
 
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
@@ -92,7 +95,7 @@ fn should_support_converting_into_columns_by_name() {
 
 #[test]
 fn should_support_retrieving_typed_rows() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
@@ -104,7 +107,7 @@ fn should_support_retrieving_typed_rows() {
 
 #[test]
 fn should_support_retrieving_a_single_typed_row() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
@@ -115,7 +118,7 @@ fn should_support_retrieving_a_single_typed_row() {
 
 #[test]
 fn should_support_inserting_typed_rows() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
@@ -155,7 +158,7 @@ fn should_support_inserting_typed_rows() {
 
 #[test]
 fn should_support_pushing_typed_rows_to_end() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
@@ -167,7 +170,7 @@ fn should_support_pushing_typed_rows_to_end() {
 
 #[test]
 fn should_support_removing_typed_rows() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
 
     // Remove when empty
     assert!(table.remove_row(0).is_none());
@@ -181,13 +184,7 @@ fn should_support_removing_typed_rows() {
     table.push_row((false, 5));
 
     // Remove from the beginning
-    assert_eq!(
-        table.remove_row(0),
-        Some(MyRow {
-            field1: false,
-            field2: 1
-        })
-    );
+    assert_eq!(table.remove_row(0), Some(MyTuple { 0: false, 1: 1 }));
     {
         let mut rows = table.rows();
         assert_eq!(rows.next(), Some((&false, &2)));
@@ -200,10 +197,7 @@ fn should_support_removing_typed_rows() {
     // Remove from the end
     assert_eq!(
         table.remove_row(table.row_cnt() - 1),
-        Some(MyRow {
-            field1: false,
-            field2: 5
-        })
+        Some(MyTuple { 0: false, 1: 5 })
     );
     {
         let mut rows = table.rows();
@@ -216,10 +210,7 @@ fn should_support_removing_typed_rows() {
     // Remove from the middle
     assert_eq!(
         table.remove_row(table.row_cnt() / 2),
-        Some(MyRow {
-            field1: false,
-            field2: 3
-        })
+        Some(MyTuple { 0: false, 1: 3 })
     );
     {
         let mut rows = table.rows();
@@ -231,7 +222,7 @@ fn should_support_removing_typed_rows() {
 
 #[test]
 fn should_support_removing_typed_rows_from_end() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
 
     // Remove when empty
     assert!(table.pop_row().is_none());
@@ -245,13 +236,7 @@ fn should_support_removing_typed_rows_from_end() {
     table.push_row((false, 5));
 
     // Remove from the end
-    assert_eq!(
-        table.pop_row(),
-        Some(MyRow {
-            field1: false,
-            field2: 5
-        })
-    );
+    assert_eq!(table.pop_row(), Some(MyTuple { 0: false, 1: 5 }));
     {
         let mut rows = table.rows();
         assert_eq!(rows.next(), Some((&false, &1)));
@@ -264,16 +249,16 @@ fn should_support_removing_typed_rows_from_end() {
 
 #[test]
 fn should_support_retrieving_typed_columns() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    let mut column = table.column_field1();
+    let mut column = table.column_0();
     assert_eq!(column.next(), Some(&false));
     assert_eq!(column.next(), Some(&true));
     assert!(column.next().is_none());
 
-    let mut column = table.column_field2();
+    let mut column = table.column_1();
     assert_eq!(column.next(), Some(&123));
     assert_eq!(column.next(), Some(&999));
     assert!(column.next().is_none());
@@ -281,20 +266,20 @@ fn should_support_retrieving_typed_columns() {
 
 #[test]
 fn should_support_converting_into_typed_columns() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    let mut column = table.into_column_field1();
+    let mut column = table.into_column_0();
     assert_eq!(column.next(), Some(false));
     assert_eq!(column.next(), Some(true));
     assert!(column.next().is_none());
 
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    let mut column = table.into_column_field2();
+    let mut column = table.into_column_1();
     assert_eq!(column.next(), Some(123));
     assert_eq!(column.next(), Some(999));
     assert!(column.next().is_none());
@@ -302,32 +287,32 @@ fn should_support_converting_into_typed_columns() {
 
 #[test]
 fn should_support_replacing_individual_cells() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    assert_eq!(table.replace_cell_field1(0, true), Some(false));
+    assert_eq!(table.replace_cell_0(0, true), Some(false));
     {
-        let mut column = table.column_field1();
+        let mut column = table.column_0();
         assert_eq!(column.next(), Some(&true));
         assert_eq!(column.next(), Some(&true));
         assert!(column.next().is_none());
     }
 
-    assert_eq!(table.replace_cell_field2(1, 0usize), Some(999));
+    assert_eq!(table.replace_cell_1(1, 0usize), Some(999));
     {
-        let mut column = table.column_field2();
+        let mut column = table.column_1();
         assert_eq!(column.next(), Some(&123));
         assert_eq!(column.next(), Some(&0));
         assert!(column.next().is_none());
     }
 
-    assert_eq!(table.replace_cell_field2(2, 999usize), None);
+    assert_eq!(table.replace_cell_1(2, 999usize), None);
     {
         assert_eq!(table.row_cnt(), 2);
         assert_eq!(table.col_cnt(), 2);
 
-        let mut column = table.column_field2();
+        let mut column = table.column_1();
         assert_eq!(column.next(), Some(&123));
         assert_eq!(column.next(), Some(&0));
         assert!(column.next().is_none());
@@ -336,40 +321,40 @@ fn should_support_replacing_individual_cells() {
 
 #[test]
 fn should_support_retrieving_individual_cells() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    assert_eq!(table.get_cell_field1(0), Some(&false));
-    assert_eq!(table.get_cell_field1(1), Some(&true));
-    assert_eq!(table.get_cell_field1(2), None);
+    assert_eq!(table.get_cell_0(0), Some(&false));
+    assert_eq!(table.get_cell_0(1), Some(&true));
+    assert_eq!(table.get_cell_0(2), None);
 
-    assert_eq!(table.get_cell_field2(0), Some(&123));
-    assert_eq!(table.get_cell_field2(1), Some(&999));
-    assert_eq!(table.get_cell_field2(2), None);
+    assert_eq!(table.get_cell_1(0), Some(&123));
+    assert_eq!(table.get_cell_1(1), Some(&999));
+    assert_eq!(table.get_cell_1(2), None);
 }
 
 #[test]
 fn should_support_mutating_individual_cells() {
-    let mut table = MyRowTable::new();
+    let mut table = MyTupleTable::new();
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    *table.get_mut_cell_field1(0).unwrap() = true;
-    *table.get_mut_cell_field1(1).unwrap() = false;
-    assert!(table.get_mut_cell_field1(2).is_none());
+    *table.get_mut_cell_0(0).unwrap() = true;
+    *table.get_mut_cell_0(1).unwrap() = false;
+    assert!(table.get_mut_cell_0(2).is_none());
 
-    *table.get_mut_cell_field2(0).unwrap() = 999;
-    *table.get_mut_cell_field2(1).unwrap() = 123;
-    assert!(table.get_mut_cell_field2(2).is_none());
+    *table.get_mut_cell_1(0).unwrap() = 999;
+    *table.get_mut_cell_1(1).unwrap() = 123;
+    assert!(table.get_mut_cell_1(2).is_none());
 
-    assert_eq!(table.get_cell_field1(0), Some(&true));
-    assert_eq!(table.get_cell_field1(1), Some(&false));
-    assert_eq!(table.get_cell_field1(2), None);
+    assert_eq!(table.get_cell_0(0), Some(&true));
+    assert_eq!(table.get_cell_0(1), Some(&false));
+    assert_eq!(table.get_cell_0(2), None);
 
-    assert_eq!(table.get_cell_field2(0), Some(&999));
-    assert_eq!(table.get_cell_field2(1), Some(&123));
-    assert_eq!(table.get_cell_field2(2), None);
+    assert_eq!(table.get_cell_1(0), Some(&999));
+    assert_eq!(table.get_cell_1(1), Some(&123));
+    assert_eq!(table.get_cell_1(2), None);
 }
 
 #[test]
@@ -378,16 +363,10 @@ fn should_support_trying_to_convert_from_untyped_table() {
     // conversion should work fine
     {
         let mut table = memtable::DynamicTable::new();
-        table.push_row(vec![
-            MyRowTableData::Field1(false),
-            MyRowTableData::Field2(123),
-        ]);
-        table.push_row(vec![
-            MyRowTableData::Field1(true),
-            MyRowTableData::Field2(999),
-        ]);
+        table.push_row(vec![MyTupleTableData::_0(false), MyTupleTableData::_1(123)]);
+        table.push_row(vec![MyTupleTableData::_0(true), MyTupleTableData::_1(999)]);
 
-        let table = MyRowTable::try_from(table).unwrap();
+        let table = MyTupleTable::try_from(table).unwrap();
         let mut rows = table.rows();
         assert_eq!(rows.next(), Some((&false, &123)));
         assert_eq!(rows.next(), Some((&true, &999)));
@@ -397,25 +376,16 @@ fn should_support_trying_to_convert_from_untyped_table() {
     // If data is not in right order in terms of column types, should fail
     {
         let mut table = memtable::DynamicTable::new();
-        table.push_row(vec![
-            MyRowTableData::Field2(123),
-            MyRowTableData::Field1(false),
-        ]);
-        table.push_row(vec![
-            MyRowTableData::Field2(999),
-            MyRowTableData::Field1(true),
-        ]);
-        assert!(MyRowTable::try_from(table).is_err());
+        table.push_row(vec![MyTupleTableData::_1(123), MyTupleTableData::_0(false)]);
+        table.push_row(vec![MyTupleTableData::_1(999), MyTupleTableData::_0(true)]);
+        assert!(MyTupleTable::try_from(table).is_err());
     }
 
     // If data is missing in places, should fail
     {
         let mut table = memtable::DynamicTable::new();
-        table.push_row(vec![
-            MyRowTableData::Field1(false),
-            MyRowTableData::Field2(123),
-        ]);
-        table.push_row(vec![MyRowTableData::Field1(true)]);
-        assert!(MyRowTable::try_from(table).is_err());
+        table.push_row(vec![MyTupleTableData::_0(false), MyTupleTableData::_1(123)]);
+        table.push_row(vec![MyTupleTableData::_0(true)]);
+        assert!(MyTupleTable::try_from(table).is_err());
     }
 }

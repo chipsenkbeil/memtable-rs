@@ -1,10 +1,14 @@
 use super::{utils, TableColumn};
-use syn::{parse_quote, Generics, Ident, ItemImpl};
+use darling::ast::Style;
+use syn::{
+    parse_quote, punctuated::Punctuated, token::Comma, Expr, FnArg, Generics, Ident, ItemImpl,
+};
 
 pub struct Args<'a> {
     pub origin_struct_name: &'a Ident,
     pub generics: &'a Generics,
     pub columns: &'a [&'a TableColumn],
+    pub style: Style,
 }
 
 pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
@@ -12,6 +16,7 @@ pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
         origin_struct_name,
         generics,
         columns,
+        style,
     } = args;
 
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
@@ -30,14 +35,29 @@ pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
         }
     };
 
+    let (args, body): (Punctuated<FnArg, Comma>, Expr) = match style {
+        Style::Tuple => {
+            let variant = utils::make_snake_idents(columns);
+            (
+                parse_quote!((#(#variant),*): (#(#ty),*)),
+                parse_quote!(Self ( #(#variant),* )),
+            )
+        }
+        Style::Struct => (
+            parse_quote!((#(#field),*): (#(#ty),*)),
+            parse_quote!(Self { #(#field),* }),
+        ),
+        Style::Unit => unreachable!(),
+    };
+
     let parts_to_struct: ItemImpl = parse_quote! {
         #[automatically_derived]
         impl #impl_generics ::std::convert::From<(#(#ty),*)>
             for #origin_struct_name #ty_generics #where_clause
         {
             /// Convert from tuple of fields to struct
-            fn from((#(#field),*): (#(#ty),*)) -> Self {
-                Self { #(#field),* }
+            fn from(#args) -> Self {
+                #body
             }
         }
     };

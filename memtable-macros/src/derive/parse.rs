@@ -41,6 +41,14 @@ pub struct StructTable {
 }
 
 impl StructTable {
+    pub fn as_style(&self) -> darling::ast::Style {
+        self.data
+            .as_ref()
+            .take_struct()
+            .map(|fields| fields.style)
+            .expect("BUG: Identified struct but data missing!")
+    }
+
     pub fn to_table_name(&self) -> Ident {
         self.name
             .as_ref()

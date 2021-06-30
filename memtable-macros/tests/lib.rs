@@ -2,6 +2,9 @@
 //       actually what is used underneath
 extern crate memtable_core as memtable;
 
+// #[derive(::memtable_macros::Table)]
+// struct MyTuple(u8, String);
+
 mod derive;
 mod hygiene;
 
