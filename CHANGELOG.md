@@ -62,6 +62,10 @@
   (return `None` instead of `Some(Default::default()))`, and properly truncate
   values by filling in with a default when requested
 
+### Fixed
+
+- `Table` derive macro no longer panics when provided tuple structs
+
 ## [0.1.0] - 2021-06-27
 
 ### Added

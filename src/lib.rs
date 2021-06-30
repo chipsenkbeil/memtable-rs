@@ -150,6 +150,7 @@
 //! [memtable_macros_msrv_img]: https://img.shields.io/badge/memtable_macros-rustc_1.51+-blueviolet.svg
 //! [memtable_msrv_lnk]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
 //! [memtable_macros_msrv_lnk]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
+#![cfg_attr(not(feature = "std"), no_std)]
 
 pub use memtable_core::*;
 

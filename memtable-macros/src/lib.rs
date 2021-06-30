@@ -1,10 +1,10 @@
-#![forbid(unsafe_code)]
 //! # memtable-macros
 //!
 //! Provides macros to derive tables.
 //!
 //! Check out full documentation at
 //! [memtable](https://github.com/chipsenkbeil/memtable-rs).
+#![forbid(unsafe_code)]
 
 mod derive;
 mod utils;
