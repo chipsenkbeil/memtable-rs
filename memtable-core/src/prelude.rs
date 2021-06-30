@@ -29,4 +29,4 @@
 //! * [`list::FixedList`] struct, which is a generic list that is able to grow
 //!   and shrink within a limited bounds
 //!
-pub use crate::{impls::*, iter::CellIter, list::*, Table};
+pub use crate::{impls::*, iter::CellIter, list::*, Table, TableExt};

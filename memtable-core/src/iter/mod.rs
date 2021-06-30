@@ -1,6 +1,12 @@
 use super::{Position, Table};
 use core::marker::PhantomData;
 
+#[cfg(feature = "predicates")]
+mod filter;
+
+#[cfg(feature = "predicates")]
+pub use filter::*;
+
 /// Represents an iterator over some part of a table at the granularity
 /// of individual cells within the table
 pub trait CellIter<T>: Iterator<Item = T> + Sized {

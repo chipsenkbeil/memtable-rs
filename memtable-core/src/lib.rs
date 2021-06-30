@@ -23,6 +23,11 @@ mod position;
 #[doc(inline)]
 pub use position::Position;
 
+/// Re-exported predicates library, which provides core functionality to
+/// filter table rows and columns
+#[cfg(feature = "predicates")]
+pub use ::predicates;
+
 /// Contains relevant top-level traits, structs, and more to make use of
 /// this library
 pub mod prelude;
@@ -1069,6 +1074,25 @@ pub trait Table: Sized {
     fn pop_column(&mut self) -> Option<Self::Column> {
         let max_cols = self.col_cnt();
         self.remove_column(if max_cols > 0 { max_cols - 1 } else { 0 })
+    }
+}
+
+pub trait TableExt<D, T: Table<Data = D>> {
+    /// Filters table's rows using the given predicate on a row
+    #[cfg(feature = "predicates")]
+    fn filter_rows<'a, P: predicates::Predicate<iter::Row<'a, D, T>>>(
+        &'a self,
+        predicate: P,
+    ) -> iter::FilterRows<'a, D, T, P>;
+}
+
+impl<D, T: Table<Data = D>> TableExt<D, T> for T {
+    #[cfg(feature = "predicates")]
+    fn filter_rows<'a, P: predicates::Predicate<iter::Row<'a, D, T>>>(
+        &'a self,
+        predicate: P,
+    ) -> iter::FilterRows<'a, D, T, P> {
+        iter::FilterRows::new(self.rows(), predicate)
     }
 }
 
