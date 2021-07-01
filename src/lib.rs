@@ -87,9 +87,9 @@
 //! derive a table to contain zero or more of a specific struct.
 //!
 //! ```rust
-//! # #[cfg(not(feature = "macros"))]
+//! # #[cfg(not(all(any(feature = "alloc", feature = "std"), feature = "macros")))]
 //! # fn main() {}
-//! # #[cfg(feature = "macros")]
+//! # #[cfg(all(any(feature = "alloc", feature = "std"), feature = "macros"))]
 //! # fn main() {
 //! use memtable::Table;
 //!
@@ -157,5 +157,5 @@ pub use memtable_core::*;
 #[cfg(feature = "macros")]
 pub use memtable_macros::*;
 
-#[cfg(all(doctest, feature = "macros"))]
+#[cfg(all(doctest, feature = "macros", any(feature = "alloc", feature = "std")))]
 doc_comment::doctest!("../README.md");

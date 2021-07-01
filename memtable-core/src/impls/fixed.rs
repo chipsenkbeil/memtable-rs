@@ -8,6 +8,7 @@ use core::{
 
 /// Represents an inmemory table containing rows & columns of some data `T`
 /// with a fixed capacity across both rows and columns
+#[cfg_attr(feature = "docs", doc(cfg(any(alloc, std))))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
 pub struct FixedTable<T: Default, const ROW: usize, const COL: usize> {

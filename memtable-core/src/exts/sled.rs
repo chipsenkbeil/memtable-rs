@@ -7,6 +7,7 @@ use std::{convert::TryFrom, sync::Mutex};
 const ERROR_BUFFER_SIZE: usize = 10;
 
 /// Represents a table that is replicated using a [`sled::Tree`]
+#[cfg_attr(feature = "docs", doc(cfg(sled)))]
 pub struct SledTable<D, R, C, T>
 where
     D: Serialize + for<'de> Deserialize<'de>,

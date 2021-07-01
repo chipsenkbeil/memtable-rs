@@ -11,6 +11,7 @@ use std::vec::Vec;
 /// Represents an inmemory table containing rows & columns of some data `T`
 /// with a fixed capacity across rows, but ability to grow dynamically with
 /// columns
+#[cfg_attr(feature = "docs", doc(cfg(any(alloc, std))))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
 pub struct FixedRowTable<T: Default, const ROW: usize> {

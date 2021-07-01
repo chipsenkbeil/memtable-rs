@@ -28,13 +28,27 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           override: true
+      - name: Install cargo-hack
+        run: cargo install cargo-hack
       - uses: Swatinem/rust-cache@v1
       - name: Check Cargo availability
         run: cargo --version
       - name: Run tests with default features
-        run: cargo test --verbose --workspace
+        run: cargo hack test --verbose --workspace
       - name: Run tests with all features
-        run: cargo test --verbose --workspace --all-features
+        run: cargo hack test --verbose --workspace --all-features
+      - name: Run tests with no_std (core only) w/ macros
+        run: |
+          cargo hack test --verbose --workspace \
+            --no-default-features \
+            --features macros \
+            --ignore-unknown-features
+      - name: Run tests with no_std (alloc) w/ macros
+        run: |
+          cargo hack test --verbose --workspace \
+            --no-default-features \
+            --features alloc,macros \
+            --ignore-unknown-features
 
   clippy:
     name: Lint with clippy

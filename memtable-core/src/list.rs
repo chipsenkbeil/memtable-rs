@@ -228,6 +228,7 @@ impl<T: Default, const N: usize> IntoIterator for FixedList<T, N> {
 
 #[cfg(any(feature = "alloc", feature = "std"))]
 #[doc(inline)]
+#[cfg_attr(feature = "docs", doc(cfg(any(alloc, std))))]
 pub use self::alloc::DynamicList;
 
 #[cfg(any(feature = "alloc", feature = "std"))]

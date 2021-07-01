@@ -31,9 +31,13 @@ pub fn make(args: Args) -> ItemFn {
             data: __RowData,
         ) {
             let data = data.into();
-            #root::Table::insert_row(&mut self.0, row, ::core::vec![
-                #(#table_data_name::#variants(data.#fields)),*
-            ]);
+            #root::Table::insert_row(
+                &mut self.0,
+                row,
+                ::core::array::IntoIter::new([
+                    #(#table_data_name::#variants(data.#fields)),*
+                ])
+            );
         }
     }
 }

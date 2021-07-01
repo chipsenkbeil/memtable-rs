@@ -3,6 +3,7 @@ use paste::paste;
 macro_rules! impl_cell {
     ($name:ident $($variant:ident)+) => {
         paste! {
+            #[cfg_attr(feature = "docs", doc(cfg(cell)))]
             #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
             #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
             pub enum $name<$($variant),+> {
