@@ -2,7 +2,6 @@ use crate::utils;
 use core::{
     array,
     cmp::Ordering,
-    iter::FromIterator,
     mem,
     ops::{Deref, DerefMut},
 };
@@ -227,12 +226,14 @@ impl<T: Default, const N: usize> IntoIterator for FixedList<T, N> {
     }
 }
 
+#[cfg(any(feature = "alloc", feature = "std"))]
 #[doc(inline)]
 pub use self::alloc::DynamicList;
 
 #[cfg(any(feature = "alloc", feature = "std"))]
 mod alloc {
     use super::*;
+    use core::iter::FromIterator;
     use std::vec::Vec;
 
     /// Represents a dynamic list that can grow and shrink with unlimited capacity

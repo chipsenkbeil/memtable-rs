@@ -516,7 +516,7 @@ mod tests {
         // Shrink our capacity from the starting maximum so we can add a row
         table.set_row_capacity(2);
 
-        table.insert_row(2, ["x", "y", "z"]);
+        table.insert_row(2, ["x", "y", "z"].iter().copied());
 
         assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["x", "y", "z"]]);
     }
@@ -525,7 +525,7 @@ mod tests {
     fn insert_row_at_end_should_do_nothing_if_no_capacity_remaining() {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
 
-        table.insert_row(3, ["x", "y", "z"]);
+        table.insert_row(3, ["x", "y", "z"].iter().copied());
 
         assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
     }
@@ -534,7 +534,7 @@ mod tests {
     fn insert_row_should_shift_down_all_rows_on_or_after_specified_row() {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
 
-        table.insert_row(1, ["x", "y", "z"]);
+        table.insert_row(1, ["x", "y", "z"].iter().copied());
 
         assert_eq!(table, [["a", "b", "c"], ["x", "y", "z"], ["d", "e", "f"]]);
     }
@@ -543,7 +543,7 @@ mod tests {
     fn insert_row_should_support_insertion_at_front() {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
 
-        table.insert_row(0, ["x", "y", "z"]);
+        table.insert_row(0, ["x", "y", "z"].iter().copied());
 
         assert_eq!(table, [["x", "y", "z"], ["a", "b", "c"], ["d", "e", "f"]]);
     }
@@ -555,7 +555,7 @@ mod tests {
         // Shrink our capacity from the starting maximum so we can add a row
         table.set_row_capacity(1);
 
-        table.push_row(["g", "h", "i"]);
+        table.push_row(["g", "h", "i"].iter().copied());
 
         assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"]]);
     }
@@ -564,7 +564,7 @@ mod tests {
     fn push_row_should_do_nothing_if_no_capacity_remaining() {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
 
-        table.push_row(["g", "h", "i"]);
+        table.push_row(["g", "h", "i"].iter().copied());
 
         assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
     }
@@ -573,7 +573,7 @@ mod tests {
     fn insert_column_should_append_if_comes_after_last_column() {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
 
-        table.insert_column(3, ["g", "h"]);
+        table.insert_column(3, ["g", "h"].iter().copied());
 
         assert_eq!(table, [["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
     }
@@ -582,7 +582,7 @@ mod tests {
     fn insert_column_should_shift_right_all_columns_on_or_after_specified_column() {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
 
-        table.insert_column(1, ["g", "h"]);
+        table.insert_column(1, ["g", "h"].iter().copied());
 
         assert_eq!(table, [["a", "g", "b", "c"], ["d", "h", "e", "f"]]);
     }
@@ -591,7 +591,7 @@ mod tests {
     fn insert_column_should_support_insertion_at_front() {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
 
-        table.insert_column(0, ["g", "h"]);
+        table.insert_column(0, ["g", "h"].iter().copied());
 
         assert_eq!(table, [["g", "a", "b", "c"], ["h", "d", "e", "f"]]);
     }
@@ -600,7 +600,7 @@ mod tests {
     fn push_column_should_insert_at_end() {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
 
-        table.push_column(["g", "h"]);
+        table.push_column(["g", "h"].iter().copied());
 
         assert_eq!(table, [["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
     }

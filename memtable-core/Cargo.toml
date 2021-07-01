@@ -15,7 +15,7 @@ default = []
 
 alloc = ["hashbrown"]
 cell = []
-serde-1 = ["serde", "serde_with"]
+serde-1 = ["serde", "serde_with", "std"]
 sled-1 = ["bincode", "serde-1", "sled"]
 std = []
 
