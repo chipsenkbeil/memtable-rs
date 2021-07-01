@@ -255,6 +255,13 @@ mod tests {
     }
 
     #[test]
+    fn new_should_create_an_empty_table() {
+        let table: DynamicTable<usize> = DynamicTable::new();
+        assert_eq!(table.row_cnt(), 0);
+        assert_eq!(table.col_cnt(), 0);
+    }
+
+    #[test]
     fn new_should_calculate_row_and_column_counts_from_max_row_and_column() {
         let table = DynamicTable::from(make_empty_hashmap::<usize>());
         assert_eq!(table.row_cnt(), 0);

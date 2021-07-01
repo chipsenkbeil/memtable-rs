@@ -280,6 +280,13 @@ mod tests {
     use std::vec;
 
     #[test]
+    fn new_should_create_an_empty_table() {
+        let table: FixedColumnTable<usize, 3> = FixedColumnTable::new();
+        assert_eq!(table.row_cnt(), 0);
+        assert_eq!(table.col_cnt(), 0);
+    }
+
+    #[test]
     fn row_cnt_should_be_adjustable() {
         let mut table: FixedColumnTable<usize, 0> = FixedColumnTable::new();
         assert_eq!(table.row_cnt(), 0);

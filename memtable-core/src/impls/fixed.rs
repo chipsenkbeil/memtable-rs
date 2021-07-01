@@ -284,6 +284,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn new_should_create_an_empty_table() {
+        let table: FixedTable<usize, 3, 3> = FixedTable::new();
+        assert_eq!(table.row_cnt(), 0);
+        assert_eq!(table.col_cnt(), 0);
+    }
+
+    #[test]
     fn row_cnt_should_be_adjustable_up_to_const_max() {
         let mut table: FixedTable<usize, 0, 0> = FixedTable::new();
         assert_eq!(table.row_cnt(), 0);
