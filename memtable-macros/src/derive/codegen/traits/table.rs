@@ -1,25 +1,48 @@
-use syn::{parse_quote, Generics, Ident, ItemImpl, Path};
+use super::{TableColumn, TableMode};
+use syn::{parse_quote, Generics, Ident, ItemImpl, Path, Type};
 
 pub struct Args<'a> {
     pub root: &'a Path,
+    pub mode: TableMode,
     pub table_name: &'a Ident,
     pub generics: &'a Generics,
     pub table_data_name: &'a Ident,
+    pub columns: &'a [&'a TableColumn],
 }
 
 pub fn make(args: Args) -> ItemImpl {
     let Args {
         root,
+        mode,
         table_name,
         generics,
         table_data_name,
+        columns,
     } = args;
 
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+    let cols = columns.len();
+
+    let row_t: Type = match mode {
+        TableMode::Dynamic => {
+            parse_quote!(#root::list::DynamicList<Self::Data>)
+        }
+        TableMode::Fixed { .. } | TableMode::FixedColumn => {
+            parse_quote!(#root::list::FixedList<Self::Data, #cols>)
+        }
+    };
+    let col_t: Type = match mode {
+        TableMode::Dynamic | TableMode::FixedColumn => {
+            parse_quote!(#root::list::DynamicList<Self::Data>)
+        }
+        TableMode::Fixed { rows } => parse_quote!(#root::list::FixedList<Self::Data, #rows>),
+    };
 
     parse_quote! {
         impl #impl_generics #root::Table for #table_name #ty_generics #where_clause {
             type Data = #table_data_name #ty_generics;
+            type Row = #row_t;
+            type Column = #col_t;
 
             fn row_cnt(&self) -> ::std::primitive::usize {
                 #root::Table::row_cnt(&self.0)

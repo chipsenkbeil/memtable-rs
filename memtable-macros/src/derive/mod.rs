@@ -55,9 +55,11 @@ fn derive_table_from_struct(root: Path, table: StructTable) -> TokenStream {
 
     let table_trait = codegen::traits::table::make(codegen::traits::table::Args {
         root: &root,
+        mode,
         table_name: &table_name,
         generics,
         table_data_name: &table_data_name,
+        columns: &columns,
     });
 
     let (struct_to_parts, parts_to_struct) = if table.skip_parts.is_none() {
