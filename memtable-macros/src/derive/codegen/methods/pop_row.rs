@@ -17,7 +17,7 @@ pub fn make(args: Args) -> ItemFn {
 
     parse_quote! {
         /// Pops a row off the end of the table
-        pub fn pop_row(&mut self) -> ::std::option::Option<#origin_struct_name #ty_generics> {
+        pub fn pop_row(&mut self) -> ::core::option::Option<#origin_struct_name #ty_generics> {
             let max_rows = #root::Table::row_cnt(&self.0);
             self.remove_row(if max_rows > 0 { max_rows - 1 } else { 0 })
         }

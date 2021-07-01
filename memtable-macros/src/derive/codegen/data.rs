@@ -61,16 +61,16 @@ pub fn make(args: Args) -> Return {
     //       variant via an attribute on the column
     let default_impl: Option<ItemImpl> = if !matches!(mode, TableMode::Dynamic) {
         let body = if variant.is_empty() {
-            quote!(::std::compile_error!("At least one field is required!"))
+            quote!(::core::compile_error!("At least one field is required!"))
         } else {
             let name = &variant[0];
             let ty = &variant_ty[0];
-            quote!(Self::#name(<#ty as ::std::default::Default>::default()))
+            quote!(Self::#name(<#ty as ::core::default::Default>::default()))
         };
 
         Some(parse_quote! {
             #[automatically_derived]
-            impl #impl_generics ::std::default::Default
+            impl #impl_generics ::core::default::Default
                 for #table_data_name #ty_generics #where_clause
             {
                 fn default() -> Self {
@@ -86,31 +86,31 @@ pub fn make(args: Args) -> Return {
         #[automatically_derived]
         impl #impl_generics #table_data_name #ty_generics #where_clause {
             #(
-                pub fn #is_variant(&self) -> ::std::primitive::bool {
+                pub fn #is_variant(&self) -> ::core::primitive::bool {
                     match self {
                         Self::#variant(_) => true,
                         _ => false,
                     }
                 }
 
-                pub fn #as_variant(&self) -> ::std::option::Option<&#variant_ty> {
+                pub fn #as_variant(&self) -> ::core::option::Option<&#variant_ty> {
                     match self {
-                        Self::#variant(x) => ::std::option::Option::Some(x),
-                        _ => ::std::option::Option::None,
+                        Self::#variant(x) => ::core::option::Option::Some(x),
+                        _ => ::core::option::Option::None,
                     }
                 }
 
-                pub fn #as_mut_variant(&mut self) -> ::std::option::Option<&mut #variant_ty> {
+                pub fn #as_mut_variant(&mut self) -> ::core::option::Option<&mut #variant_ty> {
                     match self {
-                        Self::#variant(x) => ::std::option::Option::Some(x),
-                        _ => ::std::option::Option::None,
+                        Self::#variant(x) => ::core::option::Option::Some(x),
+                        _ => ::core::option::Option::None,
                     }
                 }
 
-                pub fn #into_variant(self) -> ::std::option::Option<#variant_ty> {
+                pub fn #into_variant(self) -> ::core::option::Option<#variant_ty> {
                     match self {
-                        Self::#variant(x) => ::std::option::Option::Some(x),
-                        _ => ::std::option::Option::None,
+                        Self::#variant(x) => ::core::option::Option::Some(x),
+                        _ => ::core::option::Option::None,
                     }
                 }
             )*

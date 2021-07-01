@@ -22,8 +22,8 @@ pub fn make(args: Args) -> ItemFn {
     parse_quote! {
         pub fn #method_name(
             &self,
-            row: ::std::primitive::usize,
-        ) -> ::std::option::Option<&#variant_ty> {
+            row: ::core::primitive::usize,
+        ) -> ::core::option::Option<&#variant_ty> {
             #root::Table::get_cell(&self.0, row, #idx)
                 .and_then(#table_data_name::#as_variant)
         }

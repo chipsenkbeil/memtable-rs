@@ -25,7 +25,7 @@ pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
 
     let struct_to_parts: ItemImpl = parse_quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::convert::From<#origin_struct_name #ty_generics>
+        impl #impl_generics ::core::convert::From<#origin_struct_name #ty_generics>
             for (#(#ty),*) #where_clause
         {
             /// Convert from struct to tuple of fields
@@ -52,7 +52,7 @@ pub fn make(args: Args) -> (ItemImpl, ItemImpl) {
 
     let parts_to_struct: ItemImpl = parse_quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::convert::From<(#(#ty),*)>
+        impl #impl_generics ::core::convert::From<(#(#ty),*)>
             for #origin_struct_name #ty_generics #where_clause
         {
             /// Convert from tuple of fields to struct

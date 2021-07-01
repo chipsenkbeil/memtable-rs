@@ -24,11 +24,11 @@ pub fn make(args: Args) -> ItemFn {
     parse_quote! {
         /// Swaps the current cell value with the provided one, doing nothing
         /// if there is no cell at the specified row for the explicit column
-        pub fn #method_name<__Value: ::std::convert::Into<#variant_ty>>(
+        pub fn #method_name<__Value: ::core::convert::Into<#variant_ty>>(
             &mut self,
-            row: ::std::primitive::usize,
+            row: ::core::primitive::usize,
             value: __Value,
-        ) -> ::std::option::Option<#variant_ty> {
+        ) -> ::core::option::Option<#variant_ty> {
             if row < #root::Table::row_cnt(&self.0) {
                 #root::Table::insert_cell(
                     &mut self.0,
@@ -37,7 +37,7 @@ pub fn make(args: Args) -> ItemFn {
                     #table_data_name::#variant(value.into()),
                 ).and_then(#table_data_name::#into_variant)
             } else {
-                ::std::option::Option::None
+                ::core::option::Option::None
             }
         }
     }

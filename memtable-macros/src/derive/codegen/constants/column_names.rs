@@ -12,6 +12,6 @@ pub fn make(args: Args) -> ItemConst {
 
     parse_quote! {
         /// Represents the names of the columns associated with this type of table
-        const COLUMN_NAMES: &'static [&'static ::std::primitive::str] = &[#(#column_names),*];
+        const COLUMN_NAMES: &'static [&'static ::core::primitive::str] = &[#(#column_names),*];
     }
 }

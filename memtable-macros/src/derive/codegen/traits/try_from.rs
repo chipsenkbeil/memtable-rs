@@ -35,44 +35,44 @@ pub fn make(args: Args) -> ItemImpl {
 
     parse_quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::convert::TryFrom<#inner_table_ty>
+        impl #impl_generics ::core::convert::TryFrom<#inner_table_ty>
             for #table_name #ty_generics #where_clause
         {
-            type Error = &'static ::std::primitive::str;
+            type Error = &'static ::core::primitive::str;
 
-            fn try_from(table: #inner_table_ty) -> ::std::result::Result<Self, Self::Error> {
+            fn try_from(table: #inner_table_ty) -> ::core::result::Result<Self, Self::Error> {
                 for row in 0..#root::Table::row_cnt(&table) {
                     #(
                         let cell = #root::Table::get_cell(&table, row, #idx);
 
                         if cell.is_none() {
-                            return ::std::result::Result::Err(
-                                ::std::concat!(
+                            return ::core::result::Result::Err(
+                                ::core::concat!(
                                     "Cell in column ",
-                                    ::std::stringify!(#idx),
+                                    ::core::stringify!(#idx),
                                     "/",
-                                    ::std::stringify!(#variant),
+                                    ::core::stringify!(#variant),
                                     " is missing",
                                 )
                             );
                         }
 
                         if !cell.unwrap().#is_ty() {
-                            return ::std::result::Result::Err(
-                                ::std::concat!(
+                            return ::core::result::Result::Err(
+                                ::core::concat!(
                                     "Cell in column ",
-                                    ::std::stringify!(#idx),
+                                    ::core::stringify!(#idx),
                                     "/",
-                                    ::std::stringify!(#variant),
+                                    ::core::stringify!(#variant),
                                     " is not of type ",
-                                    ::std::stringify!(#ty),
+                                    ::core::stringify!(#ty),
                                 )
                             );
                         }
                     )*
                 }
 
-                ::std::result::Result::Ok(Self(table))
+                ::core::result::Result::Ok(Self(table))
             }
         }
     }

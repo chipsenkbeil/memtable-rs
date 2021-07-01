@@ -44,52 +44,52 @@ pub fn make(args: Args) -> ItemImpl {
             type Row = #row_t;
             type Column = #col_t;
 
-            fn row_cnt(&self) -> ::std::primitive::usize {
+            fn row_cnt(&self) -> ::core::primitive::usize {
                 #root::Table::row_cnt(&self.0)
             }
 
-            fn col_cnt(&self) -> ::std::primitive::usize {
+            fn col_cnt(&self) -> ::core::primitive::usize {
                 #root::Table::col_cnt(&self.0)
             }
 
             fn get_cell(
                 &self,
-                row: ::std::primitive::usize,
-                col: ::std::primitive::usize,
-            ) -> ::std::option::Option<&Self::Data> {
+                row: ::core::primitive::usize,
+                col: ::core::primitive::usize,
+            ) -> ::core::option::Option<&Self::Data> {
                 #root::Table::get_cell(&self.0, row, col)
             }
 
             fn get_mut_cell(
                 &mut self,
-                row: ::std::primitive::usize,
-                col: ::std::primitive::usize,
-            ) -> ::std::option::Option<&mut Self::Data> {
+                row: ::core::primitive::usize,
+                col: ::core::primitive::usize,
+            ) -> ::core::option::Option<&mut Self::Data> {
                 #root::Table::get_mut_cell(&mut self.0, row, col)
             }
 
             fn insert_cell(
                 &mut self,
-                row: ::std::primitive::usize,
-                col: ::std::primitive::usize,
+                row: ::core::primitive::usize,
+                col: ::core::primitive::usize,
                 value: Self::Data,
-            ) -> ::std::option::Option<Self::Data> {
+            ) -> ::core::option::Option<Self::Data> {
                 #root::Table::insert_cell(&mut self.0, row, col, value)
             }
 
             fn remove_cell(
                 &mut self,
-                row: ::std::primitive::usize,
-                col: ::std::primitive::usize,
-            ) -> ::std::option::Option<Self::Data> {
+                row: ::core::primitive::usize,
+                col: ::core::primitive::usize,
+            ) -> ::core::option::Option<Self::Data> {
                 #root::Table::remove_cell(&mut self.0, row, col)
             }
 
-            fn set_row_capacity(&mut self, capacity: ::std::primitive::usize) {
+            fn set_row_capacity(&mut self, capacity: ::core::primitive::usize) {
                 #root::Table::set_row_capacity(&mut self.0, capacity);
             }
 
-            fn set_column_capacity(&mut self, capacity: ::std::primitive::usize) {
+            fn set_column_capacity(&mut self, capacity: ::core::primitive::usize) {
                 #root::Table::set_column_capacity(&mut self.0, capacity);
             }
         }

@@ -18,10 +18,10 @@ pub fn make(args: Args) -> ItemFn {
     parse_quote! {
         /// Iterates through each row of the table, returning a tuple of references
         /// to the individual fields
-        pub fn rows(&self) -> impl ::std::iter::Iterator<Item = #iter_item_ty> {
+        pub fn rows(&self) -> impl ::core::iter::Iterator<Item = #iter_item_ty> {
             // NOTE: The expect(...) should never happen as we should have
             //       all of the rows available in the described range
-            ::std::iter::Iterator::map(
+            ::core::iter::Iterator::map(
                 0..#root::Table::row_cnt(&self.0),
                 move |idx| self.row(idx).expect(#bug_msg),
             )
