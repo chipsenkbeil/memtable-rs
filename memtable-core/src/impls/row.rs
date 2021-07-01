@@ -220,6 +220,7 @@ impl<T: Default, const ROW: usize, const COL: usize> From<[[T; COL]; ROW]>
     fn from(mut matrix: [[T; COL]; ROW]) -> Self {
         let mut table = Self::new();
 
+        #[allow(clippy::needless_range_loop)]
         for row in 0..ROW {
             for col in 0..COL {
                 table.insert_cell(row, col, mem::take(&mut matrix[row][col]));
