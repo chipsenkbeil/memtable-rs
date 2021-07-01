@@ -16,13 +16,42 @@ features from either.
 
 ## Installation
 
+At its core, you can import the dependency by adding the following to your
+`Cargo.toml`:
+
 ```toml
 [dependencies]
 memtable = "0.2"
+```
 
-# Optionally, include features like `macros`
+In the situation where you would like to derive typed tables based on
+user-defined structs, you can include the `macros` feature:
+
+```toml
+[dependencies]
 memtable = { version = "0.2", features = ["macros"] }
 ```
+
+### no-std support
+
+Additionally, this library has support for `no_std`, both with and without
+inclusion of `alloc`. This is done by turning off default features (`std` is
+the only default feature). From there, if you would like to include `alloc`
+support, then add that feature:
+
+```toml
+[dependencies]
+# For no_std without alloc support
+memtable = { version = "0.2", default-features = false }
+
+# For no_std with alloc support
+memtable = { version = "0.2", default-features = false, features = ["alloc"] }
+```
+
+Please keep in mind that relying only on the `core` made available by default
+will limit your table options to `FixedTable`. You are also still able to use
+the `macros` feature to derive typed tables, but you must explicitly set the
+mode to `fixed`.
 
 ## Usage
 
@@ -67,16 +96,19 @@ In the core library, you will find four primary tables:
 Alongside the essentials, the library also provides several features that
 provide extensions to the table arsenal:
 
+- **alloc**: opts into the alloc crate in the situation that `no_std` is in effect
 - **csv**: enables `FromCsv` (convert CSV into an inmemory table) and `ToCsv`
   (convert an inmemory table to CSV)
 - **cell**: enables `Cell2` and more up to `Cell26`, which represent generic
   enums that can be used as the data type for a table to enable multiple
   data types within a table (e.g. `DynamicTable<Cell2<String, bool>>`)
+- **macros**: enables `Table` macro to derive new struct that implements the
+  `Table` trait to be able to store some struct into a dedicated, inmemory table
 - **serde**: enables *serde* support on all table & cell implementations
 - **sled**: enables `SledTable`, which provides persistent storage on top of
   other tables via the sled database
-- **macros**: enables `Table` macro to derive new struct that implements the
-  `Table` trait to be able to store some struct into a dedicated, inmemory table
+- **std**: *(enabled by default)* opts into the std library; if removed then
+  `no_std` is enabled
 
 ## The Macros
 
