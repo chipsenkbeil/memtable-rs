@@ -26,13 +26,13 @@ pub fn make(args: Args) -> ItemImpl {
 
     parse_quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::default::Default
+        impl #impl_generics ::core::default::Default
             for #table_name #ty_generics #where_clause
         {
             fn default() -> Self {
                 Self(<
                     #inner_table_ty as
-                    ::std::default::Default
+                    ::core::default::Default
                 >::default())
             }
         }

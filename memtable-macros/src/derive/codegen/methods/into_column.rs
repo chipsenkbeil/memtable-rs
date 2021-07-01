@@ -20,9 +20,9 @@ pub fn make(args: Args) -> ItemFn {
     } = args;
 
     parse_quote! {
-        pub fn #method_name(self) -> impl ::std::iter::Iterator<Item = #variant_ty> {
+        pub fn #method_name(self) -> impl ::core::iter::Iterator<Item = #variant_ty> {
             let iter = #root::Table::into_column(self.0, #idx);
-            ::std::iter::Iterator::filter_map(
+            ::core::iter::Iterator::filter_map(
                 iter,
                 #table_data_name::#into_variant,
             )

@@ -28,18 +28,18 @@ pub fn make(args: Args) -> ItemFn {
         /// Retrieves a column by its name
         pub fn column_by_name(
             &self,
-            name: &::std::primitive::str,
-        ) -> ::std::option::Option<#root::iter::Column<
+            name: &::core::primitive::str,
+        ) -> ::core::option::Option<#root::iter::Column<
             #table_data_name #ty_generics,
             #inner_table_ty,
         >> {
             match name {
                 #(
-                    #column_names => ::std::option::Option::Some(
+                    #column_names => ::core::option::Option::Some(
                         #root::Table::column(&self.0, #idx)
                     ),
                 )*
-                _ => ::std::option::Option::None,
+                _ => ::core::option::Option::None,
             }
         }
     }

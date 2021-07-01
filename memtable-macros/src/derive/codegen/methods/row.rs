@@ -37,21 +37,21 @@ pub fn make(args: Args) -> ItemFn {
         /// Returns a tuple containing refs to each column's data within a row
         pub fn row(
             &self,
-            row: ::std::primitive::usize,
-        ) -> ::std::option::Option<#option_inner_ty> {
+            row: ::core::primitive::usize,
+        ) -> ::core::option::Option<#option_inner_ty> {
             // NOTE: Because we don't allow access to the underlying table
             //       at the level where the cell enum can be changed to
             //       another type, this should NEVER fail. We want to rely
             //       on that guarantee as it would be considered corrupt
             //       if the data changed types underneath.
             if row < #root::Table::row_cnt(&self.0) {
-                ::std::option::Option::Some(
+                ::core::option::Option::Some(
                     (#(
                         self.#get_cell_fns(row).expect(#bug_msg)
                     ),*)
                 )
             } else {
-                ::std::option::Option::None
+                ::core::option::Option::None
             }
         }
     }

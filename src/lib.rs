@@ -16,13 +16,42 @@
 //!
 //! ## Installation
 //!
+//! At its core, you can import the dependency by adding the following to your
+//! `Cargo.toml`:
+//!
 //! ```toml
 //! [dependencies]
 //! memtable = "0.2"
-//!
-//! # Optionally, include features like `macros`
-//! # memtable = { version = "0.2", features = ["macros"] }
 //! ```
+//!
+//! In the situation where you would like to derive typed tables based on
+//! user-defined structs, you can include the `macros` feature:
+//!
+//! ```toml
+//! [dependencies]
+//! memtable = { version = "0.2", features = ["macros"] }
+//! ```
+//!
+//! ### no-std support
+//!
+//! Additionally, this library has support for `no_std`, both with and without
+//! inclusion of `alloc`. This is done by turning off default features (`std` is
+//! the only default feature). From there, if you would like to include `alloc`
+//! support, then add that feature:
+//!
+//! ```toml
+//! [dependencies]
+//! # For no_std without alloc support
+//! memtable = { version = "0.2", default-features = false }
+//!
+//! # For no_std with alloc support
+//! memtable = { version = "0.2", default-features = false, features = ["alloc"] }
+//! ```
+//!
+//! Please keep in mind that relying only on the `core` made available by default
+//! will limit your table options to `FixedTable`. You are also still able to use
+//! the `macros` feature to derive typed tables, but you must explicitly set the
+//! mode to `fixed`.
 //!
 //! ## Usage
 //!
@@ -67,6 +96,8 @@
 //! Alongside the essentials, the library also provides several features that
 //! provide extensions to the table arsenal:
 //!
+//! - **alloc**: opts into the alloc crate in the situation that `no_std` is
+//!              in effect
 //! - **csv**: enables CSV support and
 //!     - [`exts::csv::FromCsv`]: convert CSV into an inmemory table
 //!     - [`exts::csv::ToCsv`]: convert an inmemory table to CSV
@@ -74,12 +105,14 @@
 //!             [`exts::cell::Cell26`], which represent generic enums that can
 //!             be used as the data type for a table to enable multiple data
 //!             types within a table (e.g. `DynamicTable<Cell2<String, bool>>`)
-//! - **serde**: enables *serde* support on all table & cell implementations
-//! - **sled**:  enables [`exts::sled::SledTable`], which provides persistent
-//!              storage on top of other tables via the sled database
 //! - **macros**: enables [`macro@Table`] macro to derive new struct that
 //!               implements the [`Table`] trait to be able to store some
 //!               struct into a dedicated, inmemory table
+//! - **serde**: enables *serde* support on all table & cell implementations
+//! - **sled**:  enables [`exts::sled::SledTable`], which provides persistent
+//!              storage on top of other tables via the sled database
+//! - **std**: *(enabled by default)* opts into the std library; if removed
+//!            then `no_std` is enabled
 //!
 //! ## The Macros
 //!
@@ -87,9 +120,9 @@
 //! derive a table to contain zero or more of a specific struct.
 //!
 //! ```rust
-//! # #[cfg(not(feature = "macros"))]
+//! # #[cfg(not(all(any(feature = "alloc", feature = "std"), feature = "macros")))]
 //! # fn main() {}
-//! # #[cfg(feature = "macros")]
+//! # #[cfg(all(any(feature = "alloc", feature = "std"), feature = "macros"))]
 //! # fn main() {
 //! use memtable::Table;
 //!
@@ -150,11 +183,12 @@
 //! [memtable_macros_msrv_img]: https://img.shields.io/badge/memtable_macros-rustc_1.51+-blueviolet.svg
 //! [memtable_msrv_lnk]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
 //! [memtable_macros_msrv_lnk]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
+#![cfg_attr(not(feature = "std"), no_std)]
 
 pub use memtable_core::*;
 
 #[cfg(feature = "macros")]
 pub use memtable_macros::*;
 
-#[cfg(all(doctest, feature = "macros"))]
+#[cfg(all(doctest, feature = "macros", any(feature = "alloc", feature = "std")))]
 doc_comment::doctest!("../README.md");

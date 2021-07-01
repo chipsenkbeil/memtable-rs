@@ -1,10 +1,11 @@
-#![cfg_attr(feature = "docs", feature(doc_cfg))]
 //! # memtable-core
 //!
 //! Provides the core structs and traits for use in table manipulation.
 //!
 //! Check out full documentation at
 //! [memtable](https://github.com/chipsenkbeil/memtable-rs).
+#![cfg_attr(feature = "docs", feature(doc_cfg))]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 /// Contains extensions to the library based on extra features
 pub mod exts;
@@ -14,6 +15,8 @@ pub mod iter;
 
 mod impls;
 pub use impls::*;
+
+pub mod list;
 
 mod position;
 
@@ -26,10 +29,20 @@ pub mod prelude;
 
 mod utils;
 
+// Re-export alloc as std in the case where we don't have std
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+extern crate alloc as std;
+
 /// Represents an abstract table of data
 pub trait Table: Sized {
     /// The type of data stored in individual cells within the table
     type Data;
+
+    /// The type of structure to hold a row of data
+    type Row: list::List<Item = Self::Data>;
+
+    /// The type of structure to hold a column of data
+    type Column: list::List<Item = Self::Data>;
 
     /// Returns the total rows contained in the table
     ///
@@ -38,19 +51,29 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.row_cnt(), 0);
+    /// # }
     /// ```
     ///
     /// When has several rows:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     /// assert_eq!(table.row_cnt(), 2);
+    /// # }
     /// ```
     ///
     fn row_cnt(&self) -> usize;
@@ -62,19 +85,29 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.col_cnt(), 0);
+    /// # }
     /// ```
     ///
     /// When has several columns:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     /// assert_eq!(table.col_cnt(), 2);
+    /// # }
     /// ```
     ///
     fn col_cnt(&self) -> usize;
@@ -100,19 +133,29 @@ pub trait Table: Sized {
     /// When retrieving a cell that doesn't exist:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(table.get_cell(0, 3).is_none());
+    /// # }
     /// ```
     ///
     /// When retrieving a cell that does exist:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert_eq!(table.get_cell(0, 2), Some(&3));
+    /// # }
     /// ```
     fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data>;
 
@@ -123,21 +166,31 @@ pub trait Table: Sized {
     /// When retrieving a cell that doesn't exist:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(table.get_mut_cell(0, 3).is_none());
+    /// # }
     /// ```
     ///
     /// When retrieving a cell that does exist:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
     /// *table.get_mut_cell(0, 2).unwrap() = 999;
     /// assert_eq!(table.get_cell(0, 2), Some(&999));
+    /// # }
     /// ```
     fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data>;
 
@@ -149,23 +202,33 @@ pub trait Table: Sized {
     /// When replacing a cell that doesn't exist:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
     /// assert!(table.insert_cell(0, 3, 999).is_none());
     /// assert_eq!(table.get_cell(0, 3), Some(&999));
+    /// # }
     /// ```
     ///
     /// When replacing a cell that does exist:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
     /// assert_eq!(table.insert_cell(0, 2, 999), Some(3));
     /// assert_eq!(table.get_cell(0, 2), Some(&999));
+    /// # }
     /// ```
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data>;
 
@@ -177,12 +240,17 @@ pub trait Table: Sized {
     /// ### Examples
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
     /// assert_eq!(table.remove_cell(0, 0), Some(1));
     /// assert!(table.remove_cell(0, 0).is_none());
+    /// # }
     /// ```
     fn remove_cell(&mut self, row: usize, col: usize) -> Option<Self::Data>;
 
@@ -193,19 +261,29 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.len(), 0);
+    /// # }
     /// ```
     ///
     /// When has several rows & columns:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     /// assert_eq!(table.len(), 6);
+    /// # }
     /// ```
     ///
     fn len(&self) -> usize {
@@ -220,19 +298,29 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert!(table.is_empty());
+    /// # }
     /// ```
     ///
     /// When has several rows & columns:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     /// assert!(!table.is_empty());
+    /// # }
     /// ```
     ///
     fn is_empty(&self) -> bool {
@@ -246,14 +334,23 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.rows().len(), 0);
+    /// # }
     /// ```
     ///
     /// When has several rows:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
@@ -263,6 +360,7 @@ pub trait Table: Sized {
     /// assert_eq!(rows.next().unwrap().copied().collect::<Vec<usize>>(), vec![1, 2, 3]);
     /// assert_eq!(rows.next().unwrap().copied().collect::<Vec<usize>>(), vec![4, 5, 6]);
     /// assert!(rows.next().is_none());
+    /// # }
     /// ```
     ///
     fn rows(&self) -> iter::Rows<Self::Data, Self> {
@@ -276,14 +374,23 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.row(0).len(), 0);
+    /// # }
     /// ```
     ///
     /// When has several rows:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
@@ -294,6 +401,7 @@ pub trait Table: Sized {
     /// assert_eq!(cells.next().copied(), Some(2));
     /// assert_eq!(cells.next().copied(), Some(3));
     /// assert_eq!(cells.next(), None);
+    /// # }
     /// ```
     ///
     fn row(&self, idx: usize) -> iter::Row<Self::Data, Self> {
@@ -307,14 +415,23 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.into_row(0).len(), 0);
+    /// # }
     /// ```
     ///
     /// When has several rows:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
@@ -325,6 +442,7 @@ pub trait Table: Sized {
     /// assert_eq!(cells.next(), Some(2));
     /// assert_eq!(cells.next(), Some(3));
     /// assert_eq!(cells.next(), None);
+    /// # }
     /// ```
     ///
     fn into_row(self, idx: usize) -> iter::IntoRow<Self::Data, Self> {
@@ -338,14 +456,23 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.columns().len(), 0);
+    /// # }
     /// ```
     ///
     /// When has several columns:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
@@ -355,6 +482,7 @@ pub trait Table: Sized {
     /// assert_eq!(columns.next().unwrap().copied().collect::<Vec<usize>>(), vec![1, 2, 3]);
     /// assert_eq!(columns.next().unwrap().copied().collect::<Vec<usize>>(), vec![4, 5, 6]);
     /// assert!(columns.next().is_none());
+    /// # }
     /// ```
     ///
     fn columns(&self) -> iter::Columns<Self::Data, Self> {
@@ -368,14 +496,23 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.column(0).len(), 0);
+    /// # }
     /// ```
     ///
     /// When has several columns:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
@@ -386,6 +523,7 @@ pub trait Table: Sized {
     /// assert_eq!(cells.next().copied(), Some(2));
     /// assert_eq!(cells.next().copied(), Some(3));
     /// assert_eq!(cells.next(), None);
+    /// # }
     /// ```
     ///
     fn column(&self, idx: usize) -> iter::Column<Self::Data, Self> {
@@ -399,14 +537,23 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.into_column(0).len(), 0);
+    /// # }
     /// ```
     ///
     /// When has several columns:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_column(vec![1, 2, 3]);
@@ -417,6 +564,7 @@ pub trait Table: Sized {
     /// assert_eq!(cells.next(), Some(2));
     /// assert_eq!(cells.next(), Some(3));
     /// assert_eq!(cells.next(), None);
+    /// # }
     /// ```
     ///
     fn into_column(self, idx: usize) -> iter::IntoColumn<Self::Data, Self> {
@@ -432,14 +580,23 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.cells().len(), 0);
+    /// # }
     /// ```
     ///
     /// When has several rows & columns:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
@@ -453,6 +610,7 @@ pub trait Table: Sized {
     /// assert_eq!(cells.next(), Some(&5));
     /// assert_eq!(cells.next(), Some(&6));
     /// assert_eq!(cells.next(), None);
+    /// # }
     /// ```
     ///
     fn cells(&self) -> iter::Cells<Self::Data, Self> {
@@ -468,14 +626,23 @@ pub trait Table: Sized {
     /// When empty:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let table = DynamicTable::<usize>::new();
     /// assert_eq!(table.into_cells().len(), 0);
+    /// # }
     /// ```
     ///
     /// When has several rows & columns:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::<usize>::new();
     /// table.push_row(vec![1, 2, 3]);
@@ -489,6 +656,7 @@ pub trait Table: Sized {
     /// assert_eq!(cells.next(), Some(5));
     /// assert_eq!(cells.next(), Some(6));
     /// assert_eq!(cells.next(), None);
+    /// # }
     /// ```
     ///
     fn into_cells(self) -> iter::IntoCells<Self::Data, Self> {
@@ -505,19 +673,29 @@ pub trait Table: Sized {
     /// When has checking for a cell that doesn't exist:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(!table.has_cell(0, 3));
+    /// # }
     /// ```
     ///
     /// When has checking for a cell that does exist:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// assert!(table.has_cell(0, 2));
+    /// # }
     /// ```
     fn has_cell(&self, row: usize, col: usize) -> bool {
         self.get_cell(row, col).is_some()
@@ -529,6 +707,10 @@ pub trait Table: Sized {
     /// ### Examples
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
@@ -553,6 +735,7 @@ pub trait Table: Sized {
     /// assert_eq!(row.next(), Some(&5));
     /// assert_eq!(row.next(), Some(&6));
     /// assert!(row.next().is_none());
+    /// # }
     /// ```
     fn insert_row<I: IntoIterator<Item = Self::Data>>(&mut self, row: usize, cells: I) {
         // First, we need to shift down all cells that would appear at this
@@ -579,6 +762,10 @@ pub trait Table: Sized {
     /// ### Examples
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
@@ -595,6 +782,7 @@ pub trait Table: Sized {
     /// assert_eq!(row.next(), Some(&5));
     /// assert_eq!(row.next(), Some(&6));
     /// assert!(row.next().is_none());
+    /// # }
     /// ```
     fn push_row<I: IntoIterator<Item = Self::Data>>(&mut self, cells: I) {
         self.insert_row(self.row_cnt(), cells)
@@ -609,31 +797,40 @@ pub trait Table: Sized {
     /// Removing from the front:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
-    /// assert_eq!(table.remove_row(0), Some(vec![1, 2, 3]));
-    /// assert_eq!(table.remove_row(0), Some(vec![4, 5, 6]));
+    /// assert_eq!(table.remove_row(0), Some(DynamicList::from([1, 2, 3])));
+    /// assert_eq!(table.remove_row(0), Some(DynamicList::from([4, 5, 6])));
     /// assert_eq!(table.remove_row(0), None);
+    /// # }
     /// ```
     ///
     /// Removing from the back:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
-    /// assert_eq!(table.remove_row(1), Some(vec![4, 5, 6]));
+    /// assert_eq!(table.remove_row(1), Some(DynamicList::from([4, 5, 6])));
     /// assert_eq!(table.remove_row(1), None);
-    /// assert_eq!(table.remove_row(0), Some(vec![1, 2, 3]));
+    /// assert_eq!(table.remove_row(0), Some(DynamicList::from([1, 2, 3])));
     /// assert_eq!(table.remove_row(0), None);
+    /// # }
     /// ```
-    fn remove_row(&mut self, row: usize) -> Option<Vec<Self::Data>> {
-        let mut tmp = Vec::new();
+    fn remove_row(&mut self, row: usize) -> Option<Self::Row> {
         let row_cnt = self.row_cnt();
         let col_cnt = self.col_cnt();
 
@@ -644,11 +841,8 @@ pub trait Table: Sized {
 
         // First, we remove all cells in the specified row and add them to the
         // temporary table
-        for col in 0..col_cnt {
-            if let Some(x) = self.remove_cell(row, col) {
-                tmp.push(x);
-            }
-        }
+        use list::List;
+        let tmp = Self::Row::new_filled_with(col_cnt, |col| self.remove_cell(row, col));
 
         // Second, we need to shift up all cells that would appear after this row
         for row in (row + 1)..row_cnt {
@@ -673,16 +867,21 @@ pub trait Table: Sized {
     /// ### Examples
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     /// table.push_row(vec![4, 5, 6]);
     ///
-    /// assert_eq!(table.pop_row(), Some(vec![4, 5, 6]));
-    /// assert_eq!(table.pop_row(), Some(vec![1, 2, 3]));
+    /// assert_eq!(table.pop_row(), Some(DynamicList::from([4, 5, 6])));
+    /// assert_eq!(table.pop_row(), Some(DynamicList::from([1, 2, 3])));
     /// assert_eq!(table.pop_row(), None);
+    /// # }
     /// ```
-    fn pop_row(&mut self) -> Option<Vec<Self::Data>> {
+    fn pop_row(&mut self) -> Option<Self::Row> {
         let max_rows = self.row_cnt();
         self.remove_row(if max_rows > 0 { max_rows - 1 } else { 0 })
     }
@@ -693,6 +892,10 @@ pub trait Table: Sized {
     /// ### Examples
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_column(vec![1, 2, 3]);
@@ -717,6 +920,7 @@ pub trait Table: Sized {
     /// assert_eq!(column.next(), Some(&5));
     /// assert_eq!(column.next(), Some(&6));
     /// assert!(column.next().is_none());
+    /// # }
     /// ```
     fn insert_column<I: IntoIterator<Item = Self::Data>>(&mut self, col: usize, cells: I) {
         // First, we need to shift right all cells that would appear at this
@@ -743,6 +947,10 @@ pub trait Table: Sized {
     /// ### Examples
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_column(vec![1, 2, 3]);
@@ -759,6 +967,7 @@ pub trait Table: Sized {
     /// assert_eq!(column.next(), Some(&5));
     /// assert_eq!(column.next(), Some(&6));
     /// assert!(column.next().is_none());
+    /// # }
     /// ```
     fn push_column<I: IntoIterator<Item = Self::Data>>(&mut self, cells: I) {
         self.insert_column(self.col_cnt(), cells)
@@ -773,31 +982,40 @@ pub trait Table: Sized {
     /// Removing from the front:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     ///
-    /// assert_eq!(table.remove_column(0), Some(vec![1, 2, 3]));
-    /// assert_eq!(table.remove_column(0), Some(vec![4, 5, 6]));
+    /// assert_eq!(table.remove_column(0), Some(DynamicList::from([1, 2, 3])));
+    /// assert_eq!(table.remove_column(0), Some(DynamicList::from([4, 5, 6])));
     /// assert_eq!(table.remove_column(0), None);
+    /// # }
     /// ```
     ///
     /// Removing from the the back:
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     ///
-    /// assert_eq!(table.remove_column(1), Some(vec![4, 5, 6]));
+    /// assert_eq!(table.remove_column(1), Some(DynamicList::from([4, 5, 6])));
     /// assert_eq!(table.remove_column(1), None);
-    /// assert_eq!(table.remove_column(0), Some(vec![1, 2, 3]));
+    /// assert_eq!(table.remove_column(0), Some(DynamicList::from([1, 2, 3])));
     /// assert_eq!(table.remove_column(0), None);
+    /// # }
     /// ```
-    fn remove_column(&mut self, col: usize) -> Option<Vec<Self::Data>> {
-        let mut tmp = Vec::new();
+    fn remove_column(&mut self, col: usize) -> Option<Self::Column> {
         let row_cnt = self.row_cnt();
         let col_cnt = self.col_cnt();
 
@@ -808,11 +1026,8 @@ pub trait Table: Sized {
 
         // First, we remove all cells in the specified column and add them to the
         // temporary table
-        for row in 0..row_cnt {
-            if let Some(x) = self.remove_cell(row, col) {
-                tmp.push(x);
-            }
-        }
+        use list::List;
+        let tmp = Self::Column::new_filled_with(row_cnt, |row| self.remove_cell(row, col));
 
         // Second, we need to shift left all cells that would appear after this column
         for row in 0..row_cnt {
@@ -837,16 +1052,21 @@ pub trait Table: Sized {
     /// ### Examples
     ///
     /// ```
+    /// # #[cfg(not(any(feature = "alloc", feature = "std")))]
+    /// # fn main() {}
+    /// # #[cfg(any(feature = "alloc", feature = "std"))]
+    /// # fn main() {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_column(vec![1, 2, 3]);
     /// table.push_column(vec![4, 5, 6]);
     ///
-    /// assert_eq!(table.pop_column(), Some(vec![4, 5, 6]));
-    /// assert_eq!(table.pop_column(), Some(vec![1, 2, 3]));
+    /// assert_eq!(table.pop_column(), Some(DynamicList::from([4, 5, 6])));
+    /// assert_eq!(table.pop_column(), Some(DynamicList::from([1, 2, 3])));
     /// assert_eq!(table.pop_column(), None);
+    /// # }
     /// ```
-    fn pop_column(&mut self) -> Option<Vec<Self::Data>> {
+    fn pop_column(&mut self) -> Option<Self::Column> {
         let max_cols = self.col_cnt();
         self.remove_column(if max_cols > 0 { max_cols - 1 } else { 0 })
     }
@@ -855,10 +1075,6 @@ pub trait Table: Sized {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // NOTE: For simplicity, we use our one concrete implementor of the table
-    //       trait as our test table
-    type TestTable<T> = DynamicTable<T>;
 
     // For a couple of tests, we also provide a dummy table with no actual data
     #[derive(Default)]
@@ -881,6 +1097,9 @@ mod tests {
 
     impl Table for DummyTable {
         type Data = ();
+        type Row = list::FixedList<Self::Data, 0>;
+        type Column = list::FixedList<Self::Data, 0>;
+
         fn set_row_capacity(&mut self, row: usize) {
             self.last_requested_row_capacity = Some(row);
         }
@@ -913,420 +1132,6 @@ mod tests {
     }
 
     #[test]
-    fn insert_row_should_append_if_comes_after_last_row() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]
-        .into_iter()
-        .collect();
-
-        table.insert_row(2, vec!["g", "h", "i"]);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (0, 2, "c"),
-                (1, 0, "d"),
-                (1, 1, "e"),
-                (1, 2, "f"),
-                (2, 0, "g"),
-                (2, 1, "h"),
-                (2, 2, "i"),
-            ]
-        );
-    }
-
-    #[test]
-    fn insert_row_should_shift_down_all_rows_on_or_after_specified_row() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]
-        .into_iter()
-        .collect();
-
-        table.insert_row(1, vec!["g", "h", "i"]);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (0, 2, "c"),
-                (1, 0, "g"),
-                (1, 1, "h"),
-                (1, 2, "i"),
-                (2, 0, "d"),
-                (2, 1, "e"),
-                (2, 2, "f"),
-            ]
-        );
-    }
-
-    #[test]
-    fn insert_row_should_support_insertion_at_front() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]
-        .into_iter()
-        .collect();
-
-        table.insert_row(0, vec!["g", "h", "i"]);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "g"),
-                (0, 1, "h"),
-                (0, 2, "i"),
-                (1, 0, "a"),
-                (1, 1, "b"),
-                (1, 2, "c"),
-                (2, 0, "d"),
-                (2, 1, "e"),
-                (2, 2, "f"),
-            ]
-        );
-    }
-
-    #[test]
-    fn push_row_should_insert_at_end() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]
-        .into_iter()
-        .collect();
-
-        table.push_row(vec!["g", "h", "i"]);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (0, 2, "c"),
-                (1, 0, "d"),
-                (1, 1, "e"),
-                (1, 2, "f"),
-                (2, 0, "g"),
-                (2, 1, "h"),
-                (2, 2, "i"),
-            ]
-        );
-    }
-
-    #[test]
-    fn insert_column_should_append_if_comes_after_last_column() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]
-        .into_iter()
-        .collect();
-
-        table.insert_column(3, vec!["g", "h"]);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (0, 2, "c"),
-                (0, 3, "g"),
-                (1, 0, "d"),
-                (1, 1, "e"),
-                (1, 2, "f"),
-                (1, 3, "h"),
-            ]
-        );
-    }
-
-    #[test]
-    fn insert_column_should_shift_right_all_columns_on_or_after_specified_column() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]
-        .into_iter()
-        .collect();
-
-        table.insert_column(1, vec!["g", "h"]);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "g"),
-                (0, 2, "b"),
-                (0, 3, "c"),
-                (1, 0, "d"),
-                (1, 1, "h"),
-                (1, 2, "e"),
-                (1, 3, "f"),
-            ]
-        );
-    }
-
-    #[test]
-    fn insert_column_should_support_insertion_at_front() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]
-        .into_iter()
-        .collect();
-
-        table.insert_column(0, vec!["g", "h"]);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "g"),
-                (0, 1, "a"),
-                (0, 2, "b"),
-                (0, 3, "c"),
-                (1, 0, "h"),
-                (1, 1, "d"),
-                (1, 2, "e"),
-                (1, 3, "f"),
-            ]
-        );
-    }
-
-    #[test]
-    fn push_column_should_insert_at_end() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]
-        .into_iter()
-        .collect();
-
-        table.push_column(vec!["g", "h"]);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (0, 2, "c"),
-                (0, 3, "g"),
-                (1, 0, "d"),
-                (1, 1, "e"),
-                (1, 2, "f"),
-                (1, 3, "h"),
-            ]
-        );
-    }
-
-    #[test]
-    fn remove_row_should_return_iterator_over_removed_row() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-            (2, 0, "g"),
-            (2, 1, "h"),
-            (2, 2, "i"),
-        ]
-        .into_iter()
-        .collect();
-
-        assert_eq!(table.remove_row(1), Some(vec!["d", "e", "f"]));
-    }
-
-    #[test]
-    fn remove_row_should_shift_rows_after_up() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-            (2, 0, "g"),
-            (2, 1, "h"),
-            (2, 2, "i"),
-        ]
-        .into_iter()
-        .collect();
-
-        table.remove_row(1);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (0, 2, "c"),
-                (1, 0, "g"),
-                (1, 1, "h"),
-                (1, 2, "i"),
-            ]
-        );
-    }
-
-    #[test]
-    fn remove_row_should_support_removing_from_front() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-            (2, 0, "g"),
-            (2, 1, "h"),
-            (2, 2, "i"),
-        ]
-        .into_iter()
-        .collect();
-
-        assert_eq!(table.remove_row(0), Some(vec!["a", "b", "c"]));
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "d"),
-                (0, 1, "e"),
-                (0, 2, "f"),
-                (1, 0, "g"),
-                (1, 1, "h"),
-                (1, 2, "i"),
-            ]
-        );
-    }
-
-    #[test]
-    fn remove_row_should_return_none_if_row_missing() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-            (2, 0, "g"),
-            (2, 1, "h"),
-            (2, 2, "i"),
-        ]
-        .into_iter()
-        .collect();
-
-        assert_eq!(table.remove_row(3), None);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (0, 2, "c"),
-                (1, 0, "d"),
-                (1, 1, "e"),
-                (1, 2, "f"),
-                (2, 0, "g"),
-                (2, 1, "h"),
-                (2, 2, "i"),
-            ]
-        );
-    }
-
-    #[test]
     fn remove_row_should_set_new_row_capacity_if_valid_row_removed() {
         let mut table = DummyTable::new(2, 0);
         assert_eq!(table.last_requested_row_capacity, None);
@@ -1341,172 +1146,6 @@ mod tests {
     }
 
     #[test]
-    fn pop_row_should_remove_last_row() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-            (2, 0, "g"),
-            (2, 1, "h"),
-            (2, 2, "i"),
-        ]
-        .into_iter()
-        .collect();
-
-        assert_eq!(table.pop_row(), Some(vec!["g", "h", "i"]));
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (0, 2, "c"),
-                (1, 0, "d"),
-                (1, 1, "e"),
-                (1, 2, "f"),
-            ]
-        );
-    }
-
-    #[test]
-    fn remove_column_should_return_iterator_over_removed_column() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-            (2, 0, "g"),
-            (2, 1, "h"),
-            (2, 2, "i"),
-        ]
-        .into_iter()
-        .collect();
-
-        assert_eq!(table.remove_column(1), Some(vec!["b", "e", "h"]));
-    }
-
-    #[test]
-    fn remove_column_should_shift_columns_after_left() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-            (2, 0, "g"),
-            (2, 1, "h"),
-            (2, 2, "i"),
-        ]
-        .into_iter()
-        .collect();
-
-        table.remove_column(1);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "c"),
-                (1, 0, "d"),
-                (1, 1, "f"),
-                (2, 0, "g"),
-                (2, 1, "i"),
-            ]
-        );
-    }
-
-    #[test]
-    fn remove_column_should_support_removing_from_front() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-            (2, 0, "g"),
-            (2, 1, "h"),
-            (2, 2, "i"),
-        ]
-        .into_iter()
-        .collect();
-
-        assert_eq!(table.remove_column(0), Some(vec!["a", "d", "g"]));
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "b"),
-                (0, 1, "c"),
-                (1, 0, "e"),
-                (1, 1, "f"),
-                (2, 0, "h"),
-                (2, 1, "i"),
-            ]
-        );
-    }
-
-    #[test]
-    fn remove_column_should_return_none_if_column_missing() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-            (2, 0, "g"),
-            (2, 1, "h"),
-            (2, 2, "i"),
-        ]
-        .into_iter()
-        .collect();
-
-        assert_eq!(table.remove_column(3), None);
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (0, 2, "c"),
-                (1, 0, "d"),
-                (1, 1, "e"),
-                (1, 2, "f"),
-                (2, 0, "g"),
-                (2, 1, "h"),
-                (2, 2, "i"),
-            ]
-        );
-    }
-
-    #[test]
     fn remove_column_should_set_new_column_capacity_if_valid_column_removed() {
         let mut table = DummyTable::new(0, 2);
         assert_eq!(table.last_requested_column_capacity, None);
@@ -1518,41 +1157,5 @@ mod tests {
         // Remove in range, so should call
         table.remove_column(1);
         assert_eq!(table.last_requested_column_capacity, Some(1));
-    }
-
-    #[test]
-    fn pop_column_should_remove_last_column() {
-        let mut table: TestTable<&'static str> = vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-            (2, 0, "g"),
-            (2, 1, "h"),
-            (2, 2, "i"),
-        ]
-        .into_iter()
-        .collect();
-
-        assert_eq!(table.pop_column(), Some(vec!["c", "f", "i"]));
-
-        let mut cells: Vec<(usize, usize, &'static str)> = table
-            .into_iter()
-            .map(|(pos, x)| (pos.row, pos.col, x))
-            .collect();
-        cells.sort_unstable();
-        assert_eq!(
-            cells,
-            vec![
-                (0, 0, "a"),
-                (0, 1, "b"),
-                (1, 0, "d"),
-                (1, 1, "e"),
-                (2, 0, "g"),
-                (2, 1, "h"),
-            ]
-        );
     }
 }

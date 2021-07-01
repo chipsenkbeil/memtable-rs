@@ -65,6 +65,7 @@ pub fn make_array<T: Sized, const N: usize>(mut f: impl FnMut(usize) -> T) -> [T
 //
 //       Even before then, there is a different issue about problems with
 //       transmuting a generic: https://github.com/rust-lang/rust/issues/61956
+#[allow(dead_code)]
 pub fn default_array<T: Default, const N: usize>() -> [T; N] {
     make_array(|_| T::default())
 }
@@ -76,54 +77,38 @@ mod tests {
     #[derive(Debug, PartialEq, Eq)]
     struct ComplexObj {
         idx: usize,
-        // Heap allocation via Vec<u8> underneath
-        text: String,
-        // Heap allocation via Box<...>
-        box_str: Box<&'static str>,
+        text: &'static str,
     }
 
     impl ComplexObj {
-        pub fn new(
-            idx: usize,
-            text: impl Into<String>,
-            box_str: impl Into<Box<&'static str>>,
-        ) -> Self {
-            Self {
-                idx,
-                text: text.into(),
-                box_str: box_str.into(),
-            }
+        pub fn new(idx: usize, text: &'static str) -> Self {
+            Self { idx, text }
         }
     }
 
     #[test]
     fn try_make_array_should_correctly_initialize_if_all_element_calls_succeed() {
-        let arr: Result<[String; 2], Infallible> = try_make_array(|i| Ok(format!("{}", i)));
+        let arr: Result<[usize; 2], Infallible> = try_make_array(Ok);
         let arr = arr.unwrap();
-        assert_eq!(arr[0], "0");
-        assert_eq!(arr[1], "1");
+        assert_eq!(arr[0], 0);
+        assert_eq!(arr[1], 1);
     }
 
     #[test]
     fn try_make_array_should_correctly_deallocate_if_an_element_call_fails() {
-        let arr: Result<[String; 2], &'static str> = try_make_array(|i| {
-            if i == 0 {
-                Ok(format!("{}", i))
-            } else {
-                Err("Failure!")
-            }
-        });
+        let arr: Result<[usize; 2], &'static str> =
+            try_make_array(|i| if i == 0 { Ok(i) } else { Err("Failure!") });
         assert_eq!(arr.unwrap_err(), "Failure!");
     }
 
     #[test]
     fn try_make_array_should_support_complex_objects_with_heap_allocations() {
         let arr: Result<[ComplexObj; 3], Infallible> =
-            try_make_array(|idx| Ok(ComplexObj::new(idx, format!("{}", idx), "complex")));
+            try_make_array(|idx| Ok(ComplexObj::new(idx, "complex")));
         let arr = arr.unwrap();
-        assert_eq!(arr[0], ComplexObj::new(0, "0", "complex"));
-        assert_eq!(arr[1], ComplexObj::new(1, "1", "complex"));
-        assert_eq!(arr[2], ComplexObj::new(2, "2", "complex"));
+        assert_eq!(arr[0], ComplexObj::new(0, "complex"));
+        assert_eq!(arr[1], ComplexObj::new(1, "complex"));
+        assert_eq!(arr[2], ComplexObj::new(2, "complex"));
     }
 
     #[test]
@@ -132,7 +117,7 @@ mod tests {
             if idx == 1 {
                 Err("Failure!")
             } else {
-                Ok(ComplexObj::new(idx, format!("{}", idx), "complex"))
+                Ok(ComplexObj::new(idx, "complex"))
             }
         });
         assert_eq!(arr.unwrap_err(), "Failure!");
@@ -140,9 +125,9 @@ mod tests {
 
     #[test]
     fn make_array_should_correctly_initialize() {
-        let arr: [String; 2] = make_array(|i| format!("{}", i));
-        assert_eq!(arr[0], "0");
-        assert_eq!(arr[1], "1");
+        let arr: [usize; 2] = make_array(|i| i);
+        assert_eq!(arr[0], 0);
+        assert_eq!(arr[1], 1);
     }
 
     #[test]

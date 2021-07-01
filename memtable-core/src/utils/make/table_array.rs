@@ -76,70 +76,52 @@ mod tests {
     struct ComplexObj {
         row: usize,
         col: usize,
-        // Heap allocation via Vec<u8> underneath
-        text: String,
-        // Heap allocation via Box<...>
-        box_str: Box<&'static str>,
+        text: &'static str,
     }
 
     impl ComplexObj {
-        pub fn new(
-            row: usize,
-            col: usize,
-            text: impl Into<String>,
-            box_str: impl Into<Box<&'static str>>,
-        ) -> Self {
-            Self {
-                row,
-                col,
-                text: text.into(),
-                box_str: box_str.into(),
-            }
+        pub fn new(row: usize, col: usize, text: &'static str) -> Self {
+            Self { row, col, text }
         }
     }
 
     #[test]
     fn try_make_table_array_should_correctly_initialize_if_all_element_calls_succeed() {
-        let arr: Result<[[String; 3]; 2], Infallible> =
-            try_make_table_array(|row, col| Ok(format!("{},{}", row, col)));
+        let arr: Result<[[(usize, usize); 3]; 2], Infallible> =
+            try_make_table_array(|row, col| Ok((row, col)));
         let arr = arr.unwrap();
-        assert_eq!(arr[0][0], "0,0");
-        assert_eq!(arr[0][1], "0,1");
-        assert_eq!(arr[0][2], "0,2");
-        assert_eq!(arr[1][0], "1,0");
-        assert_eq!(arr[1][1], "1,1");
-        assert_eq!(arr[1][2], "1,2");
+        assert_eq!(arr[0][0], (0, 0));
+        assert_eq!(arr[0][1], (0, 1));
+        assert_eq!(arr[0][2], (0, 2));
+        assert_eq!(arr[1][0], (1, 0));
+        assert_eq!(arr[1][1], (1, 1));
+        assert_eq!(arr[1][2], (1, 2));
     }
 
     #[test]
     fn try_make_table_array_should_correctly_deallocate_if_an_element_call_fails() {
-        let arr: Result<[[String; 3]; 2], &'static str> = try_make_table_array(|row, col| {
-            if row == 1 && col == 1 {
-                Err("Failure!")
-            } else {
-                Ok(format!("{},{}", row, col))
-            }
-        });
+        let arr: Result<[[(usize, usize); 3]; 2], &'static str> =
+            try_make_table_array(|row, col| {
+                if row == 1 && col == 1 {
+                    Err("Failure!")
+                } else {
+                    Ok((row, col))
+                }
+            });
         assert_eq!(arr.unwrap_err(), "Failure!");
     }
 
     #[test]
     fn try_make_table_array_should_support_complex_objects_with_heap_allocations() {
-        let arr: Result<[[ComplexObj; 3]; 2], Infallible> = try_make_table_array(|row, col| {
-            Ok(ComplexObj::new(
-                row,
-                col,
-                format!("{},{}", row, col),
-                "complex",
-            ))
-        });
+        let arr: Result<[[ComplexObj; 3]; 2], Infallible> =
+            try_make_table_array(|row, col| Ok(ComplexObj::new(row, col, "complex")));
         let arr = arr.unwrap();
-        assert_eq!(arr[0][0], ComplexObj::new(0, 0, "0,0", "complex"));
-        assert_eq!(arr[0][1], ComplexObj::new(0, 1, "0,1", "complex"));
-        assert_eq!(arr[0][2], ComplexObj::new(0, 2, "0,2", "complex"));
-        assert_eq!(arr[1][0], ComplexObj::new(1, 0, "1,0", "complex"));
-        assert_eq!(arr[1][1], ComplexObj::new(1, 1, "1,1", "complex"));
-        assert_eq!(arr[1][2], ComplexObj::new(1, 2, "1,2", "complex"));
+        assert_eq!(arr[0][0], ComplexObj::new(0, 0, "complex"));
+        assert_eq!(arr[0][1], ComplexObj::new(0, 1, "complex"));
+        assert_eq!(arr[0][2], ComplexObj::new(0, 2, "complex"));
+        assert_eq!(arr[1][0], ComplexObj::new(1, 0, "complex"));
+        assert_eq!(arr[1][1], ComplexObj::new(1, 1, "complex"));
+        assert_eq!(arr[1][2], ComplexObj::new(1, 2, "complex"));
     }
 
     #[test]
@@ -148,12 +130,7 @@ mod tests {
             if row == 1 && col == 1 {
                 Err("Failure!")
             } else {
-                Ok(ComplexObj::new(
-                    row,
-                    col,
-                    format!("{},{}", row, col),
-                    "complex",
-                ))
+                Ok(ComplexObj::new(row, col, "complex"))
             }
         });
         assert_eq!(arr.unwrap_err(), "Failure!");
@@ -161,13 +138,13 @@ mod tests {
 
     #[test]
     fn make_table_array_should_correctly_initialize() {
-        let arr: [[String; 3]; 2] = make_table_array(|row, col| format!("{},{}", row, col));
-        assert_eq!(arr[0][0], "0,0");
-        assert_eq!(arr[0][1], "0,1");
-        assert_eq!(arr[0][2], "0,2");
-        assert_eq!(arr[1][0], "1,0");
-        assert_eq!(arr[1][1], "1,1");
-        assert_eq!(arr[1][2], "1,2");
+        let arr: [[(usize, usize); 3]; 2] = make_table_array(|row, col| (row, col));
+        assert_eq!(arr[0][0], (0, 0));
+        assert_eq!(arr[0][1], (0, 1));
+        assert_eq!(arr[0][2], (0, 2));
+        assert_eq!(arr[1][0], (1, 0));
+        assert_eq!(arr[1][1], (1, 1));
+        assert_eq!(arr[1][2], (1, 2));
     }
 
     #[test]

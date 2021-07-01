@@ -1,5 +1,5 @@
-use crate::{iter::*, utils, Position, Table};
-use std::{
+use crate::{iter::*, list::*, utils, Position, Table};
+use core::{
     cmp,
     iter::FromIterator,
     mem,
@@ -8,6 +8,7 @@ use std::{
 
 /// Represents an inmemory table containing rows & columns of some data `T`
 /// with a fixed capacity across both rows and columns
+#[cfg_attr(feature = "docs", doc(cfg(any(alloc, std))))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
 pub struct FixedTable<T: Default, const ROW: usize, const COL: usize> {
@@ -72,6 +73,8 @@ impl<T: Default, const ROW: usize, const COL: usize> Default for FixedTable<T, R
 
 impl<T: Default, const ROW: usize, const COL: usize> Table for FixedTable<T, ROW, COL> {
     type Data = T;
+    type Row = FixedList<Self::Data, COL>;
+    type Column = FixedList<Self::Data, ROW>;
 
     fn row_cnt(&self) -> usize {
         self.row_cnt
@@ -131,7 +134,7 @@ impl<T: Default, const ROW: usize, const COL: usize> Table for FixedTable<T, ROW
         //       row and col counts? Especially, unlike the dynamic scenario,
         //       we can't rely on values not being in a map to determine
         if row < self.row_cnt && col < self.col_cnt {
-            self.insert_cell(row, col, T::default())
+            Some(mem::take(&mut self.cells[row][col]))
         } else {
             None
         }
@@ -161,6 +164,27 @@ impl<T: Default, const ROW: usize, const COL: usize> Table for FixedTable<T, ROW
     /// call [`Self::truncate`], which will reset them to their default value.
     fn set_column_capacity(&mut self, capacity: usize) {
         self.col_cnt = cmp::min(capacity, COL);
+    }
+}
+
+impl<
+        T: Default,
+        U,
+        const T_ROW: usize,
+        const T_COL: usize,
+        const U_ROW: usize,
+        const U_COL: usize,
+    > PartialEq<[[U; U_COL]; U_ROW]> for FixedTable<T, T_ROW, T_COL>
+where
+    T: PartialEq<U>,
+{
+    fn eq(&self, other: &[[U; U_COL]; U_ROW]) -> bool {
+        self.row_cnt == U_ROW
+            && self.col_cnt == U_COL
+            && self.cells[..U_ROW]
+                .iter()
+                .zip(other.iter())
+                .all(|(r1, r2)| r1[..U_COL] == r2[..U_COL])
     }
 }
 
@@ -259,6 +283,13 @@ impl<T: Default, const ROW: usize, const COL: usize> IndexMut<(usize, usize)>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn new_should_create_an_empty_table() {
+        let table: FixedTable<usize, 3, 3> = FixedTable::new();
+        assert_eq!(table.row_cnt(), 0);
+        assert_eq!(table.col_cnt(), 0);
+    }
 
     #[test]
     fn row_cnt_should_be_adjustable_up_to_const_max() {
@@ -460,5 +491,208 @@ mod tests {
     fn index_mut_by_row_and_column_should_panic_if_cell_not_found() {
         let mut table = FixedTable::from([[1, 2, 3]]);
         table[(1, 0)] = 999;
+    }
+
+    #[test]
+    fn insert_row_should_append_if_comes_after_last_row_if_capacity_remaining() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        // Shrink our capacity from the starting maximum so we can add a row
+        table.set_row_capacity(2);
+
+        table.insert_row(2, ["x", "y", "z"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["x", "y", "z"]]);
+    }
+
+    #[test]
+    fn insert_row_at_end_should_do_nothing_if_no_capacity_remaining() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.insert_row(3, ["x", "y", "z"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn insert_row_should_shift_down_all_rows_on_or_after_specified_row() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.insert_row(1, ["x", "y", "z"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c"], ["x", "y", "z"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_row_should_support_insertion_at_front() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.insert_row(0, ["x", "y", "z"].iter().copied());
+
+        assert_eq!(table, [["x", "y", "z"], ["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn push_row_should_insert_at_end_if_capacity_remaining() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        // Shrink our capacity from the starting maximum so we can add a row
+        table.set_row_capacity(1);
+
+        table.push_row(["g", "h", "i"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn push_row_should_do_nothing_if_no_capacity_remaining() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.push_row(["g", "h", "i"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_column_should_append_if_comes_after_last_column_if_capacity_remaining() {
+        let mut table = FixedTable::from([["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
+
+        // Shrink our capacity from the starting maximum so we can add a column
+        table.set_column_capacity(3);
+
+        table.insert_column(3, ["x", "y"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c", "x"], ["d", "e", "f", "y"]]);
+    }
+
+    #[test]
+    fn insert_column_should_shift_right_all_columns_on_or_after_specified_column() {
+        let mut table = FixedTable::from([["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
+
+        table.insert_column(1, ["x", "y"].iter().copied());
+
+        assert_eq!(table, [["a", "x", "b", "c"], ["d", "y", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_column_should_support_insertion_at_front() {
+        let mut table = FixedTable::from([["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
+
+        table.insert_column(0, ["x", "y"].iter().copied());
+
+        assert_eq!(table, [["x", "a", "b", "c"], ["y", "d", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_column_at_end_should_do_nothing_if_no_capacity_remaining() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_column(3, ["g", "h"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn push_column_should_insert_at_end_if_capacity_remaining() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        // Shrink our capacity from the starting maximum so we can add a column
+        table.set_column_capacity(2);
+
+        table.push_column(["g", "h"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "g"], ["d", "e", "h"]]);
+    }
+
+    #[test]
+    fn push_column_should_do_nothing_if_no_capacity_remaining() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.push_column(["g", "h"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn remove_row_should_return_list_representing_removed_row() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(1).unwrap(), ["d", "e", "f"]);
+    }
+
+    #[test]
+    fn remove_row_should_shift_rows_after_up() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.remove_row(1);
+
+        assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn remove_row_should_support_removing_from_front() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(0).unwrap(), ["a", "b", "c"]);
+        assert_eq!(table, [["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn remove_row_should_return_none_if_row_missing() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(3), None);
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn pop_row_should_remove_last_row() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.pop_row().unwrap(), ["g", "h", "i"]);
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn remove_column_should_return_iterator_over_removed_column() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(1).unwrap(), ["b", "e", "h"]);
+    }
+
+    #[test]
+    fn remove_column_should_shift_columns_after_left() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.remove_column(1);
+
+        assert_eq!(table, [["a", "c"], ["d", "f"], ["g", "i"]]);
+    }
+
+    #[test]
+    fn remove_column_should_support_removing_from_front() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(0).unwrap(), ["a", "d", "g"]);
+
+        assert_eq!(table, [["b", "c"], ["e", "f"], ["h", "i"]]);
+    }
+
+    #[test]
+    fn remove_column_should_return_none_if_column_missing() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(3), None);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn pop_column_should_remove_last_column() {
+        let mut table = FixedTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.pop_column().unwrap(), ["c", "f", "i"]);
+
+        assert_eq!(table, [["a", "b"], ["d", "e"], ["g", "h"]]);
     }
 }

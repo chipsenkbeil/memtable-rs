@@ -17,7 +17,7 @@ pub fn make(args: Args) -> ItemFn {
 
     parse_quote! {
         /// Pushes a row to the end of the table
-        pub fn push_row<__RowData: ::std::convert::Into<#origin_struct_name #ty_generics>>(
+        pub fn push_row<__RowData: ::core::convert::Into<#origin_struct_name #ty_generics>>(
             &mut self,
             data: __RowData,
         ) {

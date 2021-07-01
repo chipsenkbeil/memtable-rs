@@ -1,4 +1,4 @@
-use crate::Table;
+use crate::{list::*, Table};
 use ::sled::Tree;
 use serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, sync::Mutex};
@@ -7,20 +7,25 @@ use std::{convert::TryFrom, sync::Mutex};
 const ERROR_BUFFER_SIZE: usize = 10;
 
 /// Represents a table that is replicated using a [`sled::Tree`]
-pub struct SledTable<D, T>
+#[cfg_attr(feature = "docs", doc(cfg(sled)))]
+pub struct SledTable<D, R, C, T>
 where
     D: Serialize + for<'de> Deserialize<'de>,
-    T: Table<Data = D>,
+    R: List<Item = D>,
+    C: List<Item = D>,
+    T: Table<Data = D, Row = R, Column = C>,
 {
     tree: Tree,
     table: T,
     errors: Mutex<Vec<utils::Error>>,
 }
 
-impl<D, T> SledTable<D, T>
+impl<D, R, C, T> SledTable<D, R, C, T>
 where
     D: Serialize + for<'de> Deserialize<'de>,
-    T: Table<Data = D>,
+    R: List<Item = D>,
+    C: List<Item = D>,
+    T: Table<Data = D, Row = R, Column = C>,
 {
     /// Creates a new sled table using the provided tree and factory function
     /// to create the inmemory table that takes in the current row and column
@@ -124,12 +129,16 @@ where
     }
 }
 
-impl<D, T> Table for SledTable<D, T>
+impl<D, R, C, T> Table for SledTable<D, R, C, T>
 where
     D: Serialize + for<'de> Deserialize<'de>,
-    T: Table<Data = D>,
+    R: List<Item = D>,
+    C: List<Item = D>,
+    T: Table<Data = D, Row = R, Column = C>,
 {
     type Data = D;
+    type Row = R;
+    type Column = C;
 
     fn row_cnt(&self) -> usize {
         self.table.row_cnt()
@@ -206,10 +215,12 @@ where
     }
 }
 
-impl<D, T> TryFrom<Tree> for SledTable<D, T>
+impl<D, R, C, T> TryFrom<Tree> for SledTable<D, R, C, T>
 where
     D: Serialize + for<'de> Deserialize<'de>,
-    T: Table<Data = D> + Default,
+    R: List<Item = D>,
+    C: List<Item = D>,
+    T: Table<Data = D, Row = R, Column = C> + Default,
 {
     type Error = utils::Error;
 
@@ -401,8 +412,13 @@ mod tests {
 
         // First, load a clean table and populate it
         {
-            let mut table = SledTable::<_, DynamicTable<usize>>::try_from(tree.clone())
-                .expect("Failed to load table");
+            let mut table = SledTable::<
+                _,
+                DynamicList<usize>,
+                DynamicList<usize>,
+                DynamicTable<usize>,
+            >::try_from(tree.clone())
+            .expect("Failed to load table");
             assert!(table.is_empty(), "Table populated unexpectedly");
 
             table.push_row(vec![1, 2, 3, 4]);
@@ -425,8 +441,13 @@ mod tests {
 
         // Second, reload the table, which sled should populate
         {
-            let mut table =
-                SledTable::<_, DynamicTable<usize>>::try_from(tree).expect("Failed to load table");
+            let mut table = SledTable::<
+                _,
+                DynamicList<usize>,
+                DynamicList<usize>,
+                DynamicTable<usize>,
+            >::try_from(tree)
+            .expect("Failed to load table");
             assert!(!table.is_empty(), "Table not populated on second run");
 
             assert_eq!(table.pop_row().expect("Missing row 2"), vec![5, 6, 7, 8]);

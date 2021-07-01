@@ -26,7 +26,7 @@ pub fn make(args: Args) -> ItemImpl {
 
     parse_quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::ops::Deref for #table_name #ty_generics #where_clause {
+        impl #impl_generics ::core::ops::Deref for #table_name #ty_generics #where_clause {
             type Target = #inner_table_ty;
 
             fn deref(&self) -> &Self::Target {

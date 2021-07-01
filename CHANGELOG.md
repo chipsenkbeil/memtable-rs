@@ -6,6 +6,8 @@
 
 ### Added
 
+- `no_std` support via the `alloc` and `std` features (involved refactoring
+  `Table` trait to use new `list::DynamicList` and `list::FixedList`)
 - New `sled` feature that provides a new table wrapper `SledTable` that uses
   [sled](https://github.com/spacejam/sled) as a replication and persistence
   layer for an inmemory table
@@ -61,6 +63,10 @@
   shrink, do not return "uninitialized data" when accessing out of bounds
   (return `None` instead of `Some(Default::default()))`, and properly truncate
   values by filling in with a default when requested
+
+### Fixed
+
+- `Table` derive macro no longer panics when provided tuple structs
 
 ## [0.1.0] - 2021-06-27
 

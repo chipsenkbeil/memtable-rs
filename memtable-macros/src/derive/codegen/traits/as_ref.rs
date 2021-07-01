@@ -26,7 +26,7 @@ pub fn make(args: Args) -> ItemImpl {
 
     parse_quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::convert::AsRef<#inner_table_ty>
+        impl #impl_generics ::core::convert::AsRef<#inner_table_ty>
             for #table_name #ty_generics #where_clause
         {
             fn as_ref(&self) -> &#inner_table_ty {

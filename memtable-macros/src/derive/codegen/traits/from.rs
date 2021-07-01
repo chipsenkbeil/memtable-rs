@@ -26,7 +26,7 @@ pub fn make(args: Args) -> ItemImpl {
 
     parse_quote! {
         #[automatically_derived]
-        impl #impl_generics ::std::convert::From<#table_name #ty_generics>
+        impl #impl_generics ::core::convert::From<#table_name #ty_generics>
             for #inner_table_ty #where_clause
         {
             fn from(x: #table_name #ty_generics) -> Self {

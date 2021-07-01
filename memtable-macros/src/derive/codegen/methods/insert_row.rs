@@ -25,15 +25,19 @@ pub fn make(args: Args) -> ItemFn {
     parse_quote! {
         /// Inserts a new row into the table at the given position, shifting down
         /// all rows after it
-        pub fn insert_row<__RowData: ::std::convert::Into<#origin_struct_name #ty_generics>>(
+        pub fn insert_row<__RowData: ::core::convert::Into<#origin_struct_name #ty_generics>>(
             &mut self,
-            row: ::std::primitive::usize,
+            row: ::core::primitive::usize,
             data: __RowData,
         ) {
             let data = data.into();
-            #root::Table::insert_row(&mut self.0, row, ::std::vec![
-                #(#table_data_name::#variants(data.#fields)),*
-            ]);
+            #root::Table::insert_row(
+                &mut self.0,
+                row,
+                ::core::array::IntoIter::new([
+                    #(#table_data_name::#variants(data.#fields)),*
+                ])
+            );
         }
     }
 }

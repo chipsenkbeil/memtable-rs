@@ -1,9 +1,16 @@
-use crate::{iter::*, Position, Table};
-use std::{
-    collections::HashMap,
+use crate::{iter::*, list::*, Position, Table};
+use core::{
+    cmp,
     iter::FromIterator,
+    mem,
     ops::{Index, IndexMut},
 };
+
+#[cfg(feature = "std")]
+use std::collections::HashMap;
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use hashbrown::HashMap;
 
 /// Represents an inmemory table containing rows & columns of some data `T`,
 /// capable of growing and shrinking in size dynamically
@@ -43,10 +50,7 @@ impl<T> DynamicTable<T> {
     /// Shrinks the table's row & column capacity to fit where cells exist
     pub fn shrink_to_fit(&mut self) {
         let (max_row, max_col) = self.cells.keys().fold((0, 0), |acc, pos| {
-            (
-                std::cmp::max(acc.0, pos.row + 1),
-                std::cmp::max(acc.1, pos.col + 1),
-            )
+            (cmp::max(acc.0, pos.row + 1), cmp::max(acc.1, pos.col + 1))
         });
 
         self.row_cnt = max_row;
@@ -71,6 +75,8 @@ impl<T> Default for DynamicTable<T> {
 
 impl<T> Table for DynamicTable<T> {
     type Data = T;
+    type Row = DynamicList<Self::Data>;
+    type Column = DynamicList<Self::Data>;
 
     fn row_cnt(&self) -> usize {
         self.row_cnt
@@ -120,6 +126,24 @@ impl<T> Table for DynamicTable<T> {
     /// old positions. To do that, call [`Self::truncate`].
     fn set_column_capacity(&mut self, capacity: usize) {
         self.col_cnt = capacity;
+    }
+}
+
+impl<T: Default, U, const ROW: usize, const COL: usize> PartialEq<[[U; COL]; ROW]>
+    for DynamicTable<T>
+where
+    T: PartialEq<U>,
+{
+    fn eq(&self, other: &[[U; COL]; ROW]) -> bool {
+        #[allow(unused_imports)]
+        use std::vec::Vec;
+
+        self.row_cnt == ROW
+            && self.col_cnt == COL
+            && self
+                .rows()
+                .zip(other.iter())
+                .all(|(r1, r2)| r1.collect::<Vec<&T>>() == r2.iter().collect::<Vec<&U>>())
     }
 }
 
@@ -178,6 +202,22 @@ impl<T> From<HashMap<Position, T>> for DynamicTable<T> {
     }
 }
 
+impl<T: Default, const ROW: usize, const COL: usize> From<[[T; COL]; ROW]> for DynamicTable<T> {
+    /// Creates a new table from the 2D array
+    fn from(mut matrix: [[T; COL]; ROW]) -> Self {
+        let mut table = Self::new();
+
+        #[allow(clippy::needless_range_loop)]
+        for row in 0..ROW {
+            for col in 0..COL {
+                table.insert_cell(row, col, mem::take(&mut matrix[row][col]));
+            }
+        }
+
+        table
+    }
+}
+
 impl<T> Index<(usize, usize)> for DynamicTable<T> {
     type Output = T;
 
@@ -201,6 +241,8 @@ impl<T> IndexMut<(usize, usize)> for DynamicTable<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::vec;
+    use std::vec::Vec;
 
     fn make_empty_hashmap<T>() -> HashMap<Position, T> {
         make_hashmap(Vec::new())
@@ -211,6 +253,13 @@ mod tests {
             .into_iter()
             .map(|(row, col, x)| (Position { row, col }, x))
             .collect()
+    }
+
+    #[test]
+    fn new_should_create_an_empty_table() {
+        let table: DynamicTable<usize> = DynamicTable::new();
+        assert_eq!(table.row_cnt(), 0);
+        assert_eq!(table.col_cnt(), 0);
     }
 
     #[test]
@@ -408,5 +457,160 @@ mod tests {
         table.push_row(vec![1, 2, 3]);
 
         table[(1, 0)] = 999;
+    }
+
+    #[test]
+    fn insert_row_should_append_if_comes_after_last_row() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_row(2, ["g", "h", "i"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn insert_row_should_shift_down_all_rows_on_or_after_specified_row() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_row(1, ["g", "h", "i"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_row_should_support_insertion_at_front() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_row(0, ["g", "h", "i"].iter().copied());
+
+        assert_eq!(table, [["g", "h", "i"], ["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn push_row_should_insert_at_end() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.push_row(["g", "h", "i"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn insert_column_should_append_if_comes_after_last_column() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_column(3, ["g", "h"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
+    }
+
+    #[test]
+    fn insert_column_should_shift_right_all_columns_on_or_after_specified_column() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_column(1, ["g", "h"].iter().copied());
+
+        assert_eq!(table, [["a", "g", "b", "c"], ["d", "h", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_column_should_support_insertion_at_front() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_column(0, ["g", "h"].iter().copied());
+
+        assert_eq!(table, [["g", "a", "b", "c"], ["h", "d", "e", "f"]]);
+    }
+
+    #[test]
+    fn push_column_should_insert_at_end() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.push_column(["g", "h"].iter().copied());
+
+        assert_eq!(table, [["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
+    }
+
+    #[test]
+    fn remove_row_should_return_list_representing_removed_row() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(1).unwrap(), ["d", "e", "f"]);
+    }
+
+    #[test]
+    fn remove_row_should_shift_rows_after_up() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.remove_row(1);
+
+        assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn remove_row_should_support_removing_from_front() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(0).unwrap(), ["a", "b", "c"]);
+        assert_eq!(table, [["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn remove_row_should_return_none_if_row_missing() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(3), None);
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn pop_row_should_remove_last_row() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.pop_row().unwrap(), ["g", "h", "i"]);
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn remove_column_should_return_iterator_over_removed_column() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(1).unwrap(), ["b", "e", "h"]);
+    }
+
+    #[test]
+    fn remove_column_should_shift_columns_after_left() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.remove_column(1);
+
+        assert_eq!(table, [["a", "c"], ["d", "f"], ["g", "i"]]);
+    }
+
+    #[test]
+    fn remove_column_should_support_removing_from_front() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(0).unwrap(), ["a", "d", "g"]);
+
+        assert_eq!(table, [["b", "c"], ["e", "f"], ["h", "i"]]);
+    }
+
+    #[test]
+    fn remove_column_should_return_none_if_column_missing() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(3), None);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn pop_column_should_remove_last_column() {
+        let mut table = DynamicTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.pop_column().unwrap(), ["c", "f", "i"]);
+
+        assert_eq!(table, [["a", "b"], ["d", "e",], ["g", "h",]]);
     }
 }

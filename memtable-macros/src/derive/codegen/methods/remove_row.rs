@@ -28,7 +28,7 @@ pub fn make(args: Args) -> ItemFn {
     let create_struct_expr: Expr = match style {
         Style::Tuple => parse_quote! {
             #origin_struct_name(#(
-                ::std::iter::Iterator::next(&mut iter)
+                ::core::iter::Iterator::next(&mut iter)
                     .expect(#bug_msg)
                     .#into_variant()
                     .expect(#bug_msg)
@@ -36,7 +36,7 @@ pub fn make(args: Args) -> ItemFn {
         },
         Style::Struct => parse_quote! {
             #origin_struct_name {#(
-                #fields: ::std::iter::Iterator::next(&mut iter)
+                #fields: ::core::iter::Iterator::next(&mut iter)
                     .expect(#bug_msg)
                     .#into_variant()
                     .expect(#bug_msg)
@@ -49,11 +49,11 @@ pub fn make(args: Args) -> ItemFn {
         /// Removes the row at the specified position, shifting up all rows after it
         pub fn remove_row(
             &mut self,
-            row: ::std::primitive::usize,
-        ) -> ::std::option::Option<#origin_struct_name #ty_generics> {
+            row: ::core::primitive::usize,
+        ) -> ::core::option::Option<#origin_struct_name #ty_generics> {
             #root::Table::remove_row(&mut self.0, row).and_then(|row| {
                 // Build an iterator so we can consume the row values
-                let mut iter = ::std::iter::IntoIterator::into_iter(row);
+                let mut iter = ::core::iter::IntoIterator::into_iter(row);
 
                 // NOTE: Because we don't allow access to the underlying table
                 //       at the level where the cell enum can be changed to
@@ -61,7 +61,7 @@ pub fn make(args: Args) -> ItemFn {
                 //       on that guarantee as it would be considered corrupt
                 //       if the data is removed (by single cell) or changes
                 //       types underneath.
-                ::std::option::Option::Some(#create_struct_expr)
+                ::core::option::Option::Some(#create_struct_expr)
             })
         }
     }

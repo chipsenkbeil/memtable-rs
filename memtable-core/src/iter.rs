@@ -1,5 +1,5 @@
 use super::{Position, Table};
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// Represents an iterator over some part of a table at the granularity
 /// of individual cells within the table
@@ -472,482 +472,425 @@ impl<D, T: Table<Data = D>> CellIter<D> for IntoCells<D, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
-    // NOTE: For simplicity, we use our one concrete implementor of the table
-    //       trait as our test table
-    type TestTable<T> = crate::DynamicTable<T>;
+    macro_rules! run_tests {
+        ($table:ident) => {
+            #[test]
+            fn rows_next_should_return_next_row_if_available() {
+                let table = $table::from([[""]]);
 
-    fn make_hashmap<T>(items: Vec<(usize, usize, T)>) -> HashMap<Position, T> {
-        items
-            .into_iter()
-            .map(|(row, col, x)| (Position { row, col }, x))
-            .collect()
+                let mut rows = table.rows();
+                assert!(rows.next().is_some());
+            }
+
+            #[test]
+            fn rows_next_should_return_none_if_no_more_rows_available() {
+                let table = $table::from([[""]]);
+
+                let mut rows = table.rows();
+                rows.next();
+                assert!(rows.next().is_none());
+            }
+
+            #[test]
+            fn rows_size_hint_should_return_remaining_rows_as_both_bounds() {
+                let table = $table::from([[""]]);
+
+                let mut rows = table.rows();
+                assert_eq!(rows.size_hint(), (1, Some(1)));
+
+                rows.next();
+                assert_eq!(rows.size_hint(), (0, Some(0)));
+            }
+
+            #[test]
+            fn row_zip_with_position_should_map_iter_to_include_cell_position() {
+                let table = $table::from([["a", "b"], ["c", "d"], ["e", "f"]]);
+
+                let mut rows = table.rows();
+
+                let mut row_0 = rows.next().unwrap().zip_with_position();
+                assert_eq!(row_0.next().unwrap().0, Position { row: 0, col: 0 });
+                assert_eq!(row_0.next().unwrap().0, Position { row: 0, col: 1 });
+
+                let mut row_1 = rows.next().unwrap().zip_with_position();
+                assert_eq!(row_1.next().unwrap().0, Position { row: 1, col: 0 });
+                assert_eq!(row_1.next().unwrap().0, Position { row: 1, col: 1 });
+
+                let mut row_2 = rows.next().unwrap().zip_with_position();
+                assert_eq!(row_2.next().unwrap().0, Position { row: 2, col: 0 });
+                assert_eq!(row_2.next().unwrap().0, Position { row: 2, col: 1 });
+            }
+
+            #[test]
+            fn row_should_iterator_through_appropriate_cells() {
+                let table = $table::from([["a", "b"], ["c", "d"], ["e", "f"]]);
+
+                let mut row = table.row(1);
+                assert_eq!(row.next(), Some(&"c"));
+                assert_eq!(row.next(), Some(&"d"));
+                assert_eq!(row.next(), None);
+            }
+
+            #[test]
+            fn row_next_should_return_next_cell_if_available() {
+                let table = $table::from([[""]]);
+
+                let mut row = table.row(0);
+                assert!(row.next().is_some());
+            }
+
+            #[test]
+            fn row_next_should_return_none_if_no_more_cells_available() {
+                let table = $table::from([[""]]);
+
+                let mut row = table.row(0);
+                row.next();
+                assert!(row.next().is_none());
+            }
+
+            #[test]
+            fn row_size_hint_should_return_remaining_cells_as_both_bounds() {
+                let table = $table::from([[""]]);
+
+                let mut row = table.row(0);
+                assert_eq!(row.size_hint(), (1, Some(1)));
+
+                row.next();
+                assert_eq!(row.size_hint(), (0, Some(0)));
+            }
+
+            #[test]
+            fn into_row_zip_with_position_should_map_iter_to_include_cell_position() {
+                let table = $table::from([["a", "b"], ["c", "d"], ["e", "f"]]);
+
+                let mut row_0 = table.clone().into_row(0).zip_with_position();
+                assert_eq!(row_0.next().unwrap().0, Position { row: 0, col: 0 });
+                assert_eq!(row_0.next().unwrap().0, Position { row: 0, col: 1 });
+
+                let mut row_1 = table.clone().into_row(1).zip_with_position();
+                assert_eq!(row_1.next().unwrap().0, Position { row: 1, col: 0 });
+                assert_eq!(row_1.next().unwrap().0, Position { row: 1, col: 1 });
+
+                let mut row_2 = table.into_row(2).zip_with_position();
+                assert_eq!(row_2.next().unwrap().0, Position { row: 2, col: 0 });
+                assert_eq!(row_2.next().unwrap().0, Position { row: 2, col: 1 });
+            }
+
+            #[test]
+            fn into_row_should_iterator_through_appropriate_cells() {
+                let table = $table::from([["a", "b"], ["c", "d"], ["e", "f"]]);
+
+                let mut row = table.into_row(1);
+                assert_eq!(row.next(), Some("c"));
+                assert_eq!(row.next(), Some("d"));
+                assert_eq!(row.next(), None);
+            }
+
+            #[test]
+            fn into_row_next_should_return_next_cell_if_available() {
+                let table = $table::from([[""]]);
+
+                let mut row = table.into_row(0);
+                assert!(row.next().is_some());
+            }
+
+            #[test]
+            fn into_row_next_should_return_none_if_no_more_cells_available() {
+                let table = $table::from([[""]]);
+
+                let mut row = table.into_row(0);
+                row.next();
+                assert!(row.next().is_none());
+            }
+
+            #[test]
+            fn into_row_size_hint_should_return_remaining_cells_as_both_bounds() {
+                let table = $table::from([[""]]);
+
+                let mut row = table.into_row(0);
+                assert_eq!(row.size_hint(), (1, Some(1)));
+
+                row.next();
+                assert_eq!(row.size_hint(), (0, Some(0)));
+            }
+
+            #[test]
+            fn columns_next_should_return_next_column_if_available() {
+                let table = $table::from([[""]]);
+
+                let mut columns = table.columns();
+                assert!(columns.next().is_some());
+            }
+
+            #[test]
+            fn columns_next_should_return_none_if_no_more_columns_available() {
+                let table = $table::from([[""]]);
+
+                let mut columns = table.columns();
+                columns.next();
+                assert!(columns.next().is_none());
+            }
+
+            #[test]
+            fn columns_size_hint_should_return_remaining_columns_as_both_bounds() {
+                let table = $table::from([[""]]);
+
+                let mut columns = table.columns();
+                assert_eq!(columns.size_hint(), (1, Some(1)));
+
+                columns.next();
+                assert_eq!(columns.size_hint(), (0, Some(0)));
+            }
+
+            #[test]
+            fn column_zip_with_position_should_map_iter_to_include_cell_position() {
+                let table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+                let mut columns = table.columns();
+
+                let mut column_0 = columns.next().unwrap().zip_with_position();
+                assert_eq!(column_0.next().unwrap().0, Position { row: 0, col: 0 });
+                assert_eq!(column_0.next().unwrap().0, Position { row: 1, col: 0 });
+
+                let mut column_1 = columns.next().unwrap().zip_with_position();
+                assert_eq!(column_1.next().unwrap().0, Position { row: 0, col: 1 });
+                assert_eq!(column_1.next().unwrap().0, Position { row: 1, col: 1 });
+
+                let mut column_2 = columns.next().unwrap().zip_with_position();
+                assert_eq!(column_2.next().unwrap().0, Position { row: 0, col: 2 });
+                assert_eq!(column_2.next().unwrap().0, Position { row: 1, col: 2 });
+            }
+
+            #[test]
+            fn column_should_iterator_through_appropriate_cells() {
+                let table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+                let mut column = table.column(1);
+                assert_eq!(column.next(), Some(&"b"));
+                assert_eq!(column.next(), Some(&"e"));
+                assert_eq!(column.next(), None);
+            }
+
+            #[test]
+            fn column_next_should_return_next_cell_if_available() {
+                let table = $table::from([[""]]);
+
+                let mut column = table.column(0);
+                assert!(column.next().is_some());
+            }
+
+            #[test]
+            fn column_next_should_return_none_if_no_more_cells_available() {
+                let table = $table::from([[""]]);
+
+                let mut column = table.column(0);
+                column.next();
+                assert!(column.next().is_none());
+            }
+
+            #[test]
+            fn column_size_hint_should_return_remaining_cells_as_both_bounds() {
+                let table = $table::from([[""]]);
+
+                let mut column = table.column(0);
+                assert_eq!(column.size_hint(), (1, Some(1)));
+
+                column.next();
+                assert_eq!(column.size_hint(), (0, Some(0)));
+            }
+
+            #[test]
+            fn into_column_zip_with_position_should_map_iter_to_include_cell_position() {
+                let table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+                let mut column_0 = table.clone().into_column(0).zip_with_position();
+                assert_eq!(column_0.next().unwrap().0, Position { row: 0, col: 0 });
+                assert_eq!(column_0.next().unwrap().0, Position { row: 1, col: 0 });
+
+                let mut column_1 = table.clone().into_column(1).zip_with_position();
+                assert_eq!(column_1.next().unwrap().0, Position { row: 0, col: 1 });
+                assert_eq!(column_1.next().unwrap().0, Position { row: 1, col: 1 });
+
+                let mut column_2 = table.into_column(2).zip_with_position();
+                assert_eq!(column_2.next().unwrap().0, Position { row: 0, col: 2 });
+                assert_eq!(column_2.next().unwrap().0, Position { row: 1, col: 2 });
+            }
+
+            #[test]
+            fn into_column_should_iterator_through_appropriate_cells() {
+                let table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+                let mut column = table.into_column(1);
+                assert_eq!(column.next(), Some("b"));
+                assert_eq!(column.next(), Some("e"));
+                assert_eq!(column.next(), None);
+            }
+
+            #[test]
+            fn into_column_next_should_return_next_cell_if_available() {
+                let table = $table::from([[""]]);
+
+                let mut column = table.into_column(0);
+                assert!(column.next().is_some());
+            }
+
+            #[test]
+            fn into_column_next_should_return_none_if_no_more_cells_available() {
+                let table = $table::from([[""]]);
+
+                let mut column = table.into_column(0);
+                column.next();
+                assert!(column.next().is_none());
+            }
+
+            #[test]
+            fn into_column_size_hint_should_return_remaining_cells_as_both_bounds() {
+                let table = $table::from([[""]]);
+
+                let mut column = table.into_column(0);
+                assert_eq!(column.size_hint(), (1, Some(1)));
+
+                column.next();
+                assert_eq!(column.size_hint(), (0, Some(0)));
+            }
+
+            #[test]
+            fn cells_zip_with_position_should_map_iter_to_include_cell_position() {
+                let table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+                let mut cells = table.cells().zip_with_position();
+                assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 0 });
+                assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 1 });
+                assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 2 });
+                assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 0 });
+                assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 1 });
+                assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 2 });
+            }
+
+            #[test]
+            fn cells_should_iterator_through_appropriate_cells() {
+                let table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+                let mut cells = table.cells();
+                assert_eq!(cells.next(), Some(&"a"));
+                assert_eq!(cells.next(), Some(&"b"));
+                assert_eq!(cells.next(), Some(&"c"));
+                assert_eq!(cells.next(), Some(&"d"));
+                assert_eq!(cells.next(), Some(&"e"));
+                assert_eq!(cells.next(), Some(&"f"));
+                assert_eq!(cells.next(), None);
+            }
+
+            #[test]
+            fn cells_next_should_return_next_cell_if_available() {
+                let table = $table::from([[""]]);
+
+                let mut cells = table.cells();
+                assert!(cells.next().is_some());
+            }
+
+            #[test]
+            fn cells_next_should_return_none_if_no_more_cells_available() {
+                let table = $table::from([[""]]);
+
+                let mut cells = table.cells();
+                cells.next();
+                assert!(cells.next().is_none());
+            }
+
+            #[test]
+            fn cells_size_hint_should_return_remaining_cells_as_both_bounds() {
+                let table = $table::from([[""]]);
+
+                let mut cells = table.cells();
+                assert_eq!(cells.size_hint(), (1, Some(1)));
+
+                cells.next();
+                assert_eq!(cells.size_hint(), (0, Some(0)));
+            }
+
+            #[test]
+            fn into_cells_zip_with_position_should_map_iter_to_include_cell_position() {
+                let table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+                let mut cells = table.into_cells().zip_with_position();
+                assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 0 });
+                assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 1 });
+                assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 2 });
+                assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 0 });
+                assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 1 });
+                assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 2 });
+            }
+
+            #[test]
+            fn into_cells_should_iterator_through_all_cells() {
+                let table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+                let mut cells = table.into_cells();
+                assert_eq!(cells.next(), Some("a"));
+                assert_eq!(cells.next(), Some("b"));
+                assert_eq!(cells.next(), Some("c"));
+                assert_eq!(cells.next(), Some("d"));
+                assert_eq!(cells.next(), Some("e"));
+                assert_eq!(cells.next(), Some("f"));
+                assert_eq!(cells.next(), None);
+            }
+
+            #[test]
+            fn into_cells_next_should_return_next_cell_if_available() {
+                let table = $table::from([[""]]);
+
+                let mut cells = table.into_cells();
+                assert!(cells.next().is_some());
+            }
+
+            #[test]
+            fn into_cells_next_should_return_none_if_no_more_cells_available() {
+                let table = $table::from([[""]]);
+
+                let mut cells = table.into_cells();
+                cells.next();
+                assert!(cells.next().is_none());
+            }
+
+            #[test]
+            fn into_cells_size_hint_should_return_remaining_cells_as_both_bounds() {
+                let table = $table::from([[""]]);
+
+                let mut cells = table.into_cells();
+                assert_eq!(cells.size_hint(), (1, Some(1)));
+
+                cells.next();
+                assert_eq!(cells.size_hint(), (0, Some(0)));
+            }
+        };
     }
 
-    #[test]
-    fn rows_next_should_return_next_row_if_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut rows = table.rows();
-        assert!(rows.next().is_some());
+    #[cfg(any(feature = "alloc", feature = "std"))]
+    mod dynamic {
+        use super::*;
+        use crate::DynamicTable;
+        run_tests!(DynamicTable);
     }
 
-    #[test]
-    fn rows_next_should_return_none_if_no_more_rows_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut rows = table.rows();
-        rows.next();
-        assert!(rows.next().is_none());
+    mod fixed {
+        use super::*;
+        use crate::FixedTable;
+        run_tests!(FixedTable);
     }
 
-    #[test]
-    fn rows_size_hint_should_return_remaining_rows_as_both_bounds() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut rows = table.rows();
-        assert_eq!(rows.size_hint(), (1, Some(1)));
-
-        rows.next();
-        assert_eq!(rows.size_hint(), (0, Some(0)));
+    #[cfg(any(feature = "alloc", feature = "std"))]
+    mod fixed_row {
+        use super::*;
+        use crate::FixedRowTable;
+        run_tests!(FixedRowTable);
     }
 
-    #[test]
-    fn row_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (1, 0, "c"),
-            (1, 1, "d"),
-            (2, 0, "e"),
-            (2, 1, "f"),
-        ]));
-
-        let mut rows = table.rows();
-
-        let mut row_0 = rows.next().unwrap().zip_with_position();
-        assert_eq!(row_0.next().unwrap().0, Position { row: 0, col: 0 });
-        assert_eq!(row_0.next().unwrap().0, Position { row: 0, col: 1 });
-
-        let mut row_1 = rows.next().unwrap().zip_with_position();
-        assert_eq!(row_1.next().unwrap().0, Position { row: 1, col: 0 });
-        assert_eq!(row_1.next().unwrap().0, Position { row: 1, col: 1 });
-
-        let mut row_2 = rows.next().unwrap().zip_with_position();
-        assert_eq!(row_2.next().unwrap().0, Position { row: 2, col: 0 });
-        assert_eq!(row_2.next().unwrap().0, Position { row: 2, col: 1 });
-    }
-
-    #[test]
-    fn row_should_iterator_through_appropriate_cells() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (1, 0, "c"),
-            (1, 1, "d"),
-            (2, 0, "e"),
-            (2, 1, "f"),
-        ]));
-
-        assert_eq!(
-            table.row(1).map(|x| *x).collect::<Vec<&str>>(),
-            vec!["c", "d"]
-        );
-    }
-
-    #[test]
-    fn row_next_should_return_next_cell_if_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut row = table.row(0);
-        assert!(row.next().is_some());
-    }
-
-    #[test]
-    fn row_next_should_return_none_if_no_more_cells_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut row = table.row(0);
-        row.next();
-        assert!(row.next().is_none());
-    }
-
-    #[test]
-    fn row_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut row = table.row(0);
-        assert_eq!(row.size_hint(), (1, Some(1)));
-
-        row.next();
-        assert_eq!(row.size_hint(), (0, Some(0)));
-    }
-
-    #[test]
-    fn into_row_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (1, 0, "c"),
-            (1, 1, "d"),
-            (2, 0, "e"),
-            (2, 1, "f"),
-        ]));
-
-        let mut row_0 = table.clone().into_row(0).zip_with_position();
-        assert_eq!(row_0.next().unwrap().0, Position { row: 0, col: 0 });
-        assert_eq!(row_0.next().unwrap().0, Position { row: 0, col: 1 });
-
-        let mut row_1 = table.clone().into_row(1).zip_with_position();
-        assert_eq!(row_1.next().unwrap().0, Position { row: 1, col: 0 });
-        assert_eq!(row_1.next().unwrap().0, Position { row: 1, col: 1 });
-
-        let mut row_2 = table.into_row(2).zip_with_position();
-        assert_eq!(row_2.next().unwrap().0, Position { row: 2, col: 0 });
-        assert_eq!(row_2.next().unwrap().0, Position { row: 2, col: 1 });
-    }
-
-    #[test]
-    fn into_row_should_iterator_through_appropriate_cells() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (1, 0, "c"),
-            (1, 1, "d"),
-            (2, 0, "e"),
-            (2, 1, "f"),
-        ]));
-
-        assert_eq!(
-            table.into_row(1).collect::<Vec<&'static str>>(),
-            vec!["c", "d"]
-        );
-    }
-
-    #[test]
-    fn into_row_next_should_return_next_cell_if_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut row = table.into_row(0);
-        assert!(row.next().is_some());
-    }
-
-    #[test]
-    fn into_row_next_should_return_none_if_no_more_cells_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut row = table.into_row(0);
-        row.next();
-        assert!(row.next().is_none());
-    }
-
-    #[test]
-    fn into_row_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut row = table.into_row(0);
-        assert_eq!(row.size_hint(), (1, Some(1)));
-
-        row.next();
-        assert_eq!(row.size_hint(), (0, Some(0)));
-    }
-
-    #[test]
-    fn columns_next_should_return_next_column_if_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut columns = table.columns();
-        assert!(columns.next().is_some());
-    }
-
-    #[test]
-    fn columns_next_should_return_none_if_no_more_columns_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut columns = table.columns();
-        columns.next();
-        assert!(columns.next().is_none());
-    }
-
-    #[test]
-    fn columns_size_hint_should_return_remaining_columns_as_both_bounds() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut columns = table.columns();
-        assert_eq!(columns.size_hint(), (1, Some(1)));
-
-        columns.next();
-        assert_eq!(columns.size_hint(), (0, Some(0)));
-    }
-
-    #[test]
-    fn column_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]));
-
-        let mut columns = table.columns();
-
-        let mut column_0 = columns.next().unwrap().zip_with_position();
-        assert_eq!(column_0.next().unwrap().0, Position { row: 0, col: 0 });
-        assert_eq!(column_0.next().unwrap().0, Position { row: 1, col: 0 });
-
-        let mut column_1 = columns.next().unwrap().zip_with_position();
-        assert_eq!(column_1.next().unwrap().0, Position { row: 0, col: 1 });
-        assert_eq!(column_1.next().unwrap().0, Position { row: 1, col: 1 });
-
-        let mut column_2 = columns.next().unwrap().zip_with_position();
-        assert_eq!(column_2.next().unwrap().0, Position { row: 0, col: 2 });
-        assert_eq!(column_2.next().unwrap().0, Position { row: 1, col: 2 });
-    }
-
-    #[test]
-    fn column_should_iterator_through_appropriate_cells() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]));
-
-        assert_eq!(
-            table.column(1).map(|x| *x).collect::<Vec<&str>>(),
-            vec!["b", "e"]
-        );
-    }
-
-    #[test]
-    fn column_next_should_return_next_cell_if_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut column = table.column(0);
-        assert!(column.next().is_some());
-    }
-
-    #[test]
-    fn column_next_should_return_none_if_no_more_cells_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut column = table.column(0);
-        column.next();
-        assert!(column.next().is_none());
-    }
-
-    #[test]
-    fn column_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut column = table.column(0);
-        assert_eq!(column.size_hint(), (1, Some(1)));
-
-        column.next();
-        assert_eq!(column.size_hint(), (0, Some(0)));
-    }
-
-    #[test]
-    fn into_column_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]));
-
-        let mut column_0 = table.clone().into_column(0).zip_with_position();
-        assert_eq!(column_0.next().unwrap().0, Position { row: 0, col: 0 });
-        assert_eq!(column_0.next().unwrap().0, Position { row: 1, col: 0 });
-
-        let mut column_1 = table.clone().into_column(1).zip_with_position();
-        assert_eq!(column_1.next().unwrap().0, Position { row: 0, col: 1 });
-        assert_eq!(column_1.next().unwrap().0, Position { row: 1, col: 1 });
-
-        let mut column_2 = table.into_column(2).zip_with_position();
-        assert_eq!(column_2.next().unwrap().0, Position { row: 0, col: 2 });
-        assert_eq!(column_2.next().unwrap().0, Position { row: 1, col: 2 });
-    }
-
-    #[test]
-    fn into_column_should_iterator_through_appropriate_cells() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]));
-
-        assert_eq!(
-            table.into_column(1).collect::<Vec<&'static str>>(),
-            vec!["b", "e"]
-        );
-    }
-
-    #[test]
-    fn into_column_next_should_return_next_cell_if_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut column = table.into_column(0);
-        assert!(column.next().is_some());
-    }
-
-    #[test]
-    fn into_column_next_should_return_none_if_no_more_cells_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut column = table.into_column(0);
-        column.next();
-        assert!(column.next().is_none());
-    }
-
-    #[test]
-    fn into_column_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut column = table.into_column(0);
-        assert_eq!(column.size_hint(), (1, Some(1)));
-
-        column.next();
-        assert_eq!(column.size_hint(), (0, Some(0)));
-    }
-
-    #[test]
-    fn cells_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]));
-
-        let mut cells = table.cells().zip_with_position();
-        assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 0 });
-        assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 1 });
-        assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 2 });
-        assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 0 });
-        assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 1 });
-        assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 2 });
-    }
-
-    #[test]
-    fn cells_should_iterator_through_appropriate_cells() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]));
-
-        assert_eq!(
-            table.cells().map(|x| *x).collect::<Vec<&str>>(),
-            vec!["a", "b", "c", "d", "e", "f"]
-        );
-    }
-
-    #[test]
-    fn cells_next_should_return_next_cell_if_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut cells = table.cells();
-        assert!(cells.next().is_some());
-    }
-
-    #[test]
-    fn cells_next_should_return_none_if_no_more_cells_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut cells = table.cells();
-        cells.next();
-        assert!(cells.next().is_none());
-    }
-
-    #[test]
-    fn cells_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut cells = table.cells();
-        assert_eq!(cells.size_hint(), (1, Some(1)));
-
-        cells.next();
-        assert_eq!(cells.size_hint(), (0, Some(0)));
-    }
-
-    #[test]
-    fn into_cells_zip_with_position_should_map_iter_to_include_cell_position() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]));
-
-        let mut cells = table.into_cells().zip_with_position();
-        assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 0 });
-        assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 1 });
-        assert_eq!(cells.next().unwrap().0, Position { row: 0, col: 2 });
-        assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 0 });
-        assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 1 });
-        assert_eq!(cells.next().unwrap().0, Position { row: 1, col: 2 });
-    }
-
-    #[test]
-    fn into_cells_should_iterator_through_all_cells() {
-        let table = TestTable::from(make_hashmap(vec![
-            (0, 0, "a"),
-            (0, 1, "b"),
-            (0, 2, "c"),
-            (1, 0, "d"),
-            (1, 1, "e"),
-            (1, 2, "f"),
-        ]));
-
-        assert_eq!(
-            table.into_cells().collect::<Vec<&'static str>>(),
-            vec!["a", "b", "c", "d", "e", "f"]
-        );
-    }
-
-    #[test]
-    fn into_cells_next_should_return_next_cell_if_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut cells = table.into_cells();
-        assert!(cells.next().is_some());
-    }
-
-    #[test]
-    fn into_cells_next_should_return_none_if_no_more_cells_available() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut cells = table.into_cells();
-        cells.next();
-        assert!(cells.next().is_none());
-    }
-
-    #[test]
-    fn into_cells_size_hint_should_return_remaining_cells_as_both_bounds() {
-        let table = TestTable::from(make_hashmap(vec![(0, 0, "")]));
-
-        let mut cells = table.into_cells();
-        assert_eq!(cells.size_hint(), (1, Some(1)));
-
-        cells.next();
-        assert_eq!(cells.size_hint(), (0, Some(0)));
+    #[cfg(any(feature = "alloc", feature = "std"))]
+    mod fixed_column {
+        use super::*;
+        use crate::FixedColumnTable;
+        run_tests!(FixedColumnTable);
     }
 }

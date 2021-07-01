@@ -10,14 +10,18 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 
 [features]
+default = ["std"]
+
+alloc = ["memtable-core/alloc"]
 cell = ["memtable-core/cell"]
 csv = ["memtable-core/csv"]
 macros = ["memtable-macros"]
 serde = ["memtable-core/serde-1"]
 sled = ["memtable-core/sled-1"]
+std = ["memtable-core/std"]
 
 [dependencies]
-memtable-core = { version = "=0.2.0", path = "memtable-core" }
+memtable-core = { version = "=0.2.0", path = "memtable-core", default-features = false }
 memtable-macros = { version = "=0.2.0", path = "memtable-macros", optional = true }
 
 [dev-dependencies]
