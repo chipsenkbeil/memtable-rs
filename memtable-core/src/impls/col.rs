@@ -661,6 +661,6 @@ mod tests {
 
         assert_eq!(table.pop_column().unwrap(), ["c", "f", "i"]);
 
-        assert_eq!(table, [["a", "b"], ["d", "e",], ["g", "h",]]);
+        assert_eq!(table, [["a", "b"], ["d", "e"], ["g", "h"]]);
     }
 }

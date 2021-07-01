@@ -145,14 +145,10 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
         // TODO: Same problem as elsewhere, how do we know when to shrink our
         //       row and col counts? Especially, unlike the dynamic scenario,
         //       we can't rely on values not being in a map to determine
-        if row < self.row_cnt && col < self.col_cnt {
-            println!("row: {} col: {}", row, col);
-            println!("row_cnt: {} col_cnt: {}", self.row_cnt, self.col_cnt);
-            println!(
-                "row_len: {} col_len: {}",
-                self.cells.len(),
-                self.cells[row].len()
-            );
+        // NOTE: We check the length of the specific row instead of just the
+        //       col_cnt as when a new column is inserted, the entire col_cnt
+        //       grows but not all other rows are grown to match
+        if row < self.row_cnt && col < self.cells[row].len() {
             Some(mem::take(&mut self.cells[row][col]))
         } else {
             None
@@ -193,7 +189,11 @@ where
     fn eq(&self, other: &[[U; U_COL]; U_ROW]) -> bool {
         self.row_cnt == U_ROW
             && self.col_cnt == U_COL
-            && self.cells.iter().zip(other.iter()).all(|(r1, r2)| r1 == r2)
+            && self
+                .cells
+                .iter()
+                .zip(other.iter())
+                .all(|(r1, r2)| r1[..U_COL] == r2[..U_COL])
     }
 }
 
@@ -510,39 +510,63 @@ mod tests {
     }
 
     #[test]
-    fn insert_row_should_append_if_comes_after_last_row() {
-        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+    fn insert_row_should_append_if_comes_after_last_row_if_capacity_remaining() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
 
-        table.insert_row(2, ["g", "h", "i"]);
+        // Shrink our capacity from the starting maximum so we can add a row
+        table.set_row_capacity(2);
+
+        table.insert_row(2, ["x", "y", "z"]);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["x", "y", "z"]]);
+    }
+
+    #[test]
+    fn insert_row_at_end_should_do_nothing_if_no_capacity_remaining() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.insert_row(3, ["x", "y", "z"]);
 
         assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
     }
 
     #[test]
     fn insert_row_should_shift_down_all_rows_on_or_after_specified_row() {
-        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
 
-        table.insert_row(1, ["g", "h", "i"]);
+        table.insert_row(1, ["x", "y", "z"]);
 
-        assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"], ["d", "e", "f"]]);
+        assert_eq!(table, [["a", "b", "c"], ["x", "y", "z"], ["d", "e", "f"]]);
     }
 
     #[test]
     fn insert_row_should_support_insertion_at_front() {
-        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
 
-        table.insert_row(0, ["g", "h", "i"]);
+        table.insert_row(0, ["x", "y", "z"]);
 
-        assert_eq!(table, [["g", "h", "i"], ["a", "b", "c"], ["d", "e", "f"]]);
+        assert_eq!(table, [["x", "y", "z"], ["a", "b", "c"], ["d", "e", "f"]]);
     }
 
     #[test]
-    fn push_row_should_insert_at_end() {
+    fn push_row_should_insert_at_end_if_capacity_remaining() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        // Shrink our capacity from the starting maximum so we can add a row
+        table.set_row_capacity(1);
+
+        table.push_row(["g", "h", "i"]);
+
+        assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn push_row_should_do_nothing_if_no_capacity_remaining() {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
 
         table.push_row(["g", "h", "i"]);
 
-        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
     }
 
     #[test]
@@ -661,6 +685,6 @@ mod tests {
 
         assert_eq!(table.pop_column().unwrap(), ["c", "f", "i"]);
 
-        assert_eq!(table, [["a", "b"], ["d", "e",], ["g", "h",]]);
+        assert_eq!(table, [["a", "b"], ["d", "e"], ["g", "h"]]);
     }
 }
