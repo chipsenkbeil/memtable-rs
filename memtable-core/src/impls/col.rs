@@ -124,7 +124,11 @@ impl<T: Default, const COL: usize> Table for FixedColumnTable<T, COL> {
         // TODO: Same problem as elsewhere, how do we know when to shrink our
         //       row and col counts? Especially, unlike the dynamic scenario,
         //       we can't rely on values not being in a map to determine
-        self.insert_cell(row, col, T::default())
+        if row < self.row_cnt && col < self.col_cnt {
+            Some(mem::take(&mut self.cells[row][col]))
+        } else {
+            None
+        }
     }
 
     /// Will adjust the internal row count tracker to the specified capacity

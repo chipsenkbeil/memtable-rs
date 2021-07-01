@@ -111,13 +111,20 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
         if row < ROW {
             let mut did_grow = false;
             if col >= self.col_cnt {
-                self.cells[row].resize_with(col + 1, Default::default);
+                self.cells[row].resize_with(col + 1, T::default);
                 self.col_cnt = col + 1;
                 did_grow = true;
             }
 
             if row >= self.row_cnt {
                 self.row_cnt = row + 1;
+                did_grow = true;
+            }
+
+            // Even if the virtual size is updated, the actual row may not
+            // have grown to fit
+            if col >= self.cells[row].len() {
+                self.cells[row].resize_with(col + 1, T::default);
                 did_grow = true;
             }
 
@@ -138,7 +145,11 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
         // TODO: Same problem as elsewhere, how do we know when to shrink our
         //       row and col counts? Especially, unlike the dynamic scenario,
         //       we can't rely on values not being in a map to determine
-        self.insert_cell(row, col, T::default())
+        if row < self.row_cnt && col < self.col_cnt {
+            Some(mem::take(&mut self.cells[row][col]))
+        } else {
+            None
+        }
     }
 
     /// Will adjust the internal row count tracker to the specified capacity,

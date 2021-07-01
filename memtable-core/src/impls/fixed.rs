@@ -133,7 +133,7 @@ impl<T: Default, const ROW: usize, const COL: usize> Table for FixedTable<T, ROW
         //       row and col counts? Especially, unlike the dynamic scenario,
         //       we can't rely on values not being in a map to determine
         if row < self.row_cnt && col < self.col_cnt {
-            self.insert_cell(row, col, T::default())
+            Some(mem::take(&mut self.cells[row][col]))
         } else {
             None
         }
