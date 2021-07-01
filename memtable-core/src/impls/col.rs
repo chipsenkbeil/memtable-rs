@@ -1,10 +1,12 @@
-use crate::{iter::*, utils, Position, Table};
-use std::{
+use crate::{iter::*, list::*, utils, Position, Table};
+use core::{
     cmp,
     iter::FromIterator,
     mem,
     ops::{Index, IndexMut},
 };
+
+use std::vec::Vec;
 
 /// Represents an inmemory table containing rows & columns of some data `T`
 /// with a fixed capacity across columns, but ability to grow dynamically with
@@ -63,6 +65,8 @@ impl<T: Default, const COL: usize> FixedColumnTable<T, COL> {
 
 impl<T: Default, const COL: usize> Table for FixedColumnTable<T, COL> {
     type Data = T;
+    type Row = FixedList<Self::Data, COL>;
+    type Column = DynamicList<Self::Data>;
 
     fn row_cnt(&self) -> usize {
         self.row_cnt
@@ -149,6 +153,22 @@ impl<T: Default, const COL: usize> Table for FixedColumnTable<T, COL> {
     }
 }
 
+impl<T: Default, U, const T_COL: usize, const U_ROW: usize, const U_COL: usize>
+    PartialEq<[[U; U_COL]; U_ROW]> for FixedColumnTable<T, T_COL>
+where
+    T: PartialEq<U>,
+{
+    fn eq(&self, other: &[[U; U_COL]; U_ROW]) -> bool {
+        self.row_cnt == U_ROW
+            && self.col_cnt == U_COL
+            && self
+                .cells
+                .iter()
+                .zip(other.iter())
+                .all(|(r1, r2)| r1[..U_COL] == r2[..U_COL])
+    }
+}
+
 impl<T: Default, const COL: usize> From<Vec<[T; COL]>> for FixedColumnTable<T, COL> {
     /// Creates a new table with maximum allocation of COL for each row, assuming
     /// all provided columns have been filled
@@ -162,6 +182,23 @@ impl<T: Default, const COL: usize> From<Vec<[T; COL]>> for FixedColumnTable<T, C
             row_cnt,
             col_cnt: COL,
         }
+    }
+}
+
+impl<T: Default, const ROW: usize, const COL: usize> From<[[T; COL]; ROW]>
+    for FixedColumnTable<T, COL>
+{
+    /// Creates a new table from the 2D array
+    fn from(mut matrix: [[T; COL]; ROW]) -> Self {
+        let mut table = Self::new();
+
+        for row in 0..ROW {
+            for col in 0..COL {
+                table.insert_cell(row, col, mem::take(&mut matrix[row][col]));
+            }
+        }
+
+        table
     }
 }
 
@@ -236,6 +273,7 @@ impl<T: Default, const COL: usize> IndexMut<(usize, usize)> for FixedColumnTable
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::vec;
 
     #[test]
     fn row_cnt_should_be_adjustable() {

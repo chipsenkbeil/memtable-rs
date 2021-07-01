@@ -71,6 +71,8 @@ pub fn default_table_array<T: Default, const ROW: usize, const COL: usize>() -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::format;
+    use std::{boxed::Box, string::String};
 
     #[derive(Debug, PartialEq, Eq)]
     struct ComplexObj {

@@ -72,6 +72,8 @@ pub fn default_array<T: Default, const N: usize>() -> [T; N] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::format;
+    use std::{boxed::Box, string::String};
 
     #[derive(Debug, PartialEq, Eq)]
     struct ComplexObj {

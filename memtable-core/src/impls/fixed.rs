@@ -1,5 +1,5 @@
-use crate::{iter::*, utils, Position, Table};
-use std::{
+use crate::{iter::*, list::*, utils, Position, Table};
+use core::{
     cmp,
     iter::FromIterator,
     mem,
@@ -72,6 +72,8 @@ impl<T: Default, const ROW: usize, const COL: usize> Default for FixedTable<T, R
 
 impl<T: Default, const ROW: usize, const COL: usize> Table for FixedTable<T, ROW, COL> {
     type Data = T;
+    type Row = FixedList<Self::Data, COL>;
+    type Column = FixedList<Self::Data, ROW>;
 
     fn row_cnt(&self) -> usize {
         self.row_cnt
@@ -161,6 +163,27 @@ impl<T: Default, const ROW: usize, const COL: usize> Table for FixedTable<T, ROW
     /// call [`Self::truncate`], which will reset them to their default value.
     fn set_column_capacity(&mut self, capacity: usize) {
         self.col_cnt = cmp::min(capacity, COL);
+    }
+}
+
+impl<
+        T: Default,
+        U,
+        const T_ROW: usize,
+        const T_COL: usize,
+        const U_ROW: usize,
+        const U_COL: usize,
+    > PartialEq<[[U; U_COL]; U_ROW]> for FixedTable<T, T_ROW, T_COL>
+where
+    T: PartialEq<U>,
+{
+    fn eq(&self, other: &[[U; U_COL]; U_ROW]) -> bool {
+        self.row_cnt == U_ROW
+            && self.col_cnt == U_COL
+            && self.cells[..U_ROW]
+                .iter()
+                .zip(other.iter())
+                .all(|(r1, r2)| r1[..U_COL] == r2[..U_COL])
     }
 }
 

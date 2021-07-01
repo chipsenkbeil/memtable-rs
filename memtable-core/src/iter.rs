@@ -1,5 +1,5 @@
 use super::{Position, Table};
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// Represents an iterator over some part of a table at the granularity
 /// of individual cells within the table
@@ -472,7 +472,14 @@ impl<D, T: Table<Data = D>> CellIter<D> for IntoCells<D, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::vec;
+    use std::vec::Vec;
+
+    #[cfg(feature = "std")]
     use std::collections::HashMap;
+
+    #[cfg(all(feature = "alloc", not(feature = "std")))]
+    use hashbrown::HashMap;
 
     // NOTE: For simplicity, we use our one concrete implementor of the table
     //       trait as our test table

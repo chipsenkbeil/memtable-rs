@@ -1,9 +1,16 @@
-use crate::{iter::*, Position, Table};
-use std::{
-    collections::HashMap,
+use crate::{iter::*, list::*, Position, Table};
+use core::{
+    cmp,
     iter::FromIterator,
+    mem,
     ops::{Index, IndexMut},
 };
+
+#[cfg(feature = "std")]
+use std::collections::HashMap;
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use hashbrown::HashMap;
 
 /// Represents an inmemory table containing rows & columns of some data `T`,
 /// capable of growing and shrinking in size dynamically
@@ -43,10 +50,7 @@ impl<T> DynamicTable<T> {
     /// Shrinks the table's row & column capacity to fit where cells exist
     pub fn shrink_to_fit(&mut self) {
         let (max_row, max_col) = self.cells.keys().fold((0, 0), |acc, pos| {
-            (
-                std::cmp::max(acc.0, pos.row + 1),
-                std::cmp::max(acc.1, pos.col + 1),
-            )
+            (cmp::max(acc.0, pos.row + 1), cmp::max(acc.1, pos.col + 1))
         });
 
         self.row_cnt = max_row;
@@ -71,6 +75,8 @@ impl<T> Default for DynamicTable<T> {
 
 impl<T> Table for DynamicTable<T> {
     type Data = T;
+    type Row = DynamicList<Self::Data>;
+    type Column = DynamicList<Self::Data>;
 
     fn row_cnt(&self) -> usize {
         self.row_cnt
@@ -120,6 +126,24 @@ impl<T> Table for DynamicTable<T> {
     /// old positions. To do that, call [`Self::truncate`].
     fn set_column_capacity(&mut self, capacity: usize) {
         self.col_cnt = capacity;
+    }
+}
+
+impl<T: Default, U, const ROW: usize, const COL: usize> PartialEq<[[U; COL]; ROW]>
+    for DynamicTable<T>
+where
+    T: PartialEq<U>,
+{
+    fn eq(&self, other: &[[U; COL]; ROW]) -> bool {
+        #[allow(unused_imports)]
+        use std::vec::Vec;
+
+        self.row_cnt == ROW
+            && self.col_cnt == COL
+            && self
+                .rows()
+                .zip(other.iter())
+                .all(|(r1, r2)| r1.collect::<Vec<&T>>() == r2.iter().collect::<Vec<&U>>())
     }
 }
 
@@ -178,6 +202,21 @@ impl<T> From<HashMap<Position, T>> for DynamicTable<T> {
     }
 }
 
+impl<T: Default, const ROW: usize, const COL: usize> From<[[T; COL]; ROW]> for DynamicTable<T> {
+    /// Creates a new table from the 2D array
+    fn from(mut matrix: [[T; COL]; ROW]) -> Self {
+        let mut table = Self::new();
+
+        for row in 0..ROW {
+            for col in 0..COL {
+                table.insert_cell(row, col, mem::take(&mut matrix[row][col]));
+            }
+        }
+
+        table
+    }
+}
+
 impl<T> Index<(usize, usize)> for DynamicTable<T> {
     type Output = T;
 
@@ -201,6 +240,8 @@ impl<T> IndexMut<(usize, usize)> for DynamicTable<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::vec;
+    use std::vec::Vec;
 
     fn make_empty_hashmap<T>() -> HashMap<Position, T> {
         make_hashmap(Vec::new())

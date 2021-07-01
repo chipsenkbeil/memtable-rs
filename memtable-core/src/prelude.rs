@@ -28,5 +28,6 @@
 pub use crate::{
     impls::{DynamicTable, FixedColumnTable, FixedRowTable, FixedTable},
     iter::CellIter,
+    list::*,
     Table,
 };
