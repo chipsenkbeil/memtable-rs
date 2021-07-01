@@ -146,6 +146,13 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
         //       row and col counts? Especially, unlike the dynamic scenario,
         //       we can't rely on values not being in a map to determine
         if row < self.row_cnt && col < self.col_cnt {
+            println!("row: {} col: {}", row, col);
+            println!("row_cnt: {} col_cnt: {}", self.row_cnt, self.col_cnt);
+            println!(
+                "row_len: {} col_len: {}",
+                self.cells.len(),
+                self.cells[row].len()
+            );
             Some(mem::take(&mut self.cells[row][col]))
         } else {
             None
@@ -500,5 +507,160 @@ mod tests {
     fn index_mut_by_row_and_column_should_panic_if_cell_not_found() {
         let mut table = FixedRowTable::from([vec![1, 2, 3]]);
         table[(1, 0)] = 999;
+    }
+
+    #[test]
+    fn insert_row_should_append_if_comes_after_last_row() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_row(2, ["g", "h", "i"]);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn insert_row_should_shift_down_all_rows_on_or_after_specified_row() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_row(1, ["g", "h", "i"]);
+
+        assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_row_should_support_insertion_at_front() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_row(0, ["g", "h", "i"]);
+
+        assert_eq!(table, [["g", "h", "i"], ["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn push_row_should_insert_at_end() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.push_row(["g", "h", "i"]);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn insert_column_should_append_if_comes_after_last_column() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_column(3, ["g", "h"]);
+
+        assert_eq!(table, [["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
+    }
+
+    #[test]
+    fn insert_column_should_shift_right_all_columns_on_or_after_specified_column() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_column(1, ["g", "h"]);
+
+        assert_eq!(table, [["a", "g", "b", "c"], ["d", "h", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_column_should_support_insertion_at_front() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_column(0, ["g", "h"]);
+
+        assert_eq!(table, [["g", "a", "b", "c"], ["h", "d", "e", "f"]]);
+    }
+
+    #[test]
+    fn push_column_should_insert_at_end() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.push_column(["g", "h"]);
+
+        assert_eq!(table, [["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
+    }
+
+    #[test]
+    fn remove_row_should_return_list_representing_removed_row() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(1).unwrap(), ["d", "e", "f"]);
+    }
+
+    #[test]
+    fn remove_row_should_shift_rows_after_up() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.remove_row(1);
+
+        assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn remove_row_should_support_removing_from_front() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(0).unwrap(), ["a", "b", "c"]);
+        assert_eq!(table, [["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn remove_row_should_return_none_if_row_missing() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(3), None);
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn pop_row_should_remove_last_row() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.pop_row().unwrap(), ["g", "h", "i"]);
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn remove_column_should_return_iterator_over_removed_column() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(1).unwrap(), ["b", "e", "h"]);
+    }
+
+    #[test]
+    fn remove_column_should_shift_columns_after_left() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.remove_column(1);
+
+        assert_eq!(table, [["a", "c"], ["d", "f"], ["g", "i"]]);
+    }
+
+    #[test]
+    fn remove_column_should_support_removing_from_front() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(0).unwrap(), ["a", "d", "g"]);
+
+        assert_eq!(table, [["b", "c"], ["e", "f"], ["h", "i"]]);
+    }
+
+    #[test]
+    fn remove_column_should_return_none_if_column_missing() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(3), None);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn pop_column_should_remove_last_column() {
+        let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.pop_column().unwrap(), ["c", "f", "i"]);
+
+        assert_eq!(table, [["a", "b"], ["d", "e",], ["g", "h",]]);
     }
 }

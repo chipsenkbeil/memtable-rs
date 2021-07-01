@@ -484,4 +484,183 @@ mod tests {
         let mut table = FixedColumnTable::from(vec![[1, 2, 3]]);
         table[(1, 0)] = 999;
     }
+
+    #[test]
+    fn insert_row_should_append_if_comes_after_last_row() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_row(2, ["g", "h", "i"]);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn insert_row_should_shift_down_all_rows_on_or_after_specified_row() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_row(1, ["g", "h", "i"]);
+
+        assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_row_should_support_insertion_at_front() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_row(0, ["g", "h", "i"]);
+
+        assert_eq!(table, [["g", "h", "i"], ["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn push_row_should_insert_at_end() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.push_row(["g", "h", "i"]);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn insert_column_should_append_if_comes_after_last_column_if_capacity_remaining() {
+        let mut table = FixedColumnTable::from([["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
+
+        // Shrink our capacity from the starting maximum so we can add a column
+        table.set_column_capacity(3);
+
+        table.insert_column(3, ["x", "y"]);
+
+        assert_eq!(table, [["a", "b", "c", "x"], ["d", "e", "f", "y"]]);
+    }
+
+    #[test]
+    fn insert_column_should_shift_right_all_columns_on_or_after_specified_column() {
+        let mut table = FixedColumnTable::from([["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
+
+        table.insert_column(1, ["x", "y"]);
+
+        assert_eq!(table, [["a", "x", "b", "c"], ["d", "y", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_column_should_support_insertion_at_front() {
+        let mut table = FixedColumnTable::from([["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
+
+        table.insert_column(0, ["x", "y"]);
+
+        assert_eq!(table, [["x", "a", "b", "c"], ["y", "d", "e", "f"]]);
+    }
+
+    #[test]
+    fn insert_column_at_end_should_do_nothing_if_no_capacity_remaining() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.insert_column(3, ["g", "h"]);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn push_column_should_insert_at_end_if_capacity_remaining() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        // Shrink our capacity from the starting maximum so we can add a column
+        table.set_column_capacity(2);
+
+        table.push_column(["g", "h"]);
+
+        assert_eq!(table, [["a", "b", "g"], ["d", "e", "h"]]);
+    }
+
+    #[test]
+    fn push_column_should_do_nothing_if_no_capacity_remaining() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"]]);
+
+        table.push_column(["g", "h"]);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn remove_row_should_return_list_representing_removed_row() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(1).unwrap(), ["d", "e", "f"]);
+    }
+
+    #[test]
+    fn remove_row_should_shift_rows_after_up() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.remove_row(1);
+
+        assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn remove_row_should_support_removing_from_front() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(0).unwrap(), ["a", "b", "c"]);
+        assert_eq!(table, [["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn remove_row_should_return_none_if_row_missing() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_row(3), None);
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn pop_row_should_remove_last_row() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.pop_row().unwrap(), ["g", "h", "i"]);
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
+    }
+
+    #[test]
+    fn remove_column_should_return_iterator_over_removed_column() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(1).unwrap(), ["b", "e", "h"]);
+    }
+
+    #[test]
+    fn remove_column_should_shift_columns_after_left() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        table.remove_column(1);
+
+        assert_eq!(table, [["a", "c"], ["d", "f"], ["g", "i"]]);
+    }
+
+    #[test]
+    fn remove_column_should_support_removing_from_front() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(0).unwrap(), ["a", "d", "g"]);
+
+        assert_eq!(table, [["b", "c"], ["e", "f"], ["h", "i"]]);
+    }
+
+    #[test]
+    fn remove_column_should_return_none_if_column_missing() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.remove_column(3), None);
+
+        assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+    }
+
+    #[test]
+    fn pop_column_should_remove_last_column() {
+        let mut table = FixedColumnTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
+
+        assert_eq!(table.pop_column().unwrap(), ["c", "f", "i"]);
+
+        assert_eq!(table, [["a", "b"], ["d", "e",], ["g", "h",]]);
+    }
 }

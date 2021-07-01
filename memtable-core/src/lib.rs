@@ -861,268 +861,86 @@ pub trait Table: Sized {
 mod tests {
     use super::*;
 
-    macro_rules! run_tests {
-        ($table:ident) => {
-            // For a couple of tests, we also provide a dummy table with no actual data
-            #[derive(Default)]
-            struct DummyTable {
-                row_cnt: usize,
-                col_cnt: usize,
-                last_requested_row_capacity: Option<usize>,
-                last_requested_column_capacity: Option<usize>,
-            }
-
-            impl DummyTable {
-                pub fn new(row_cnt: usize, col_cnt: usize) -> Self {
-                    Self {
-                        row_cnt,
-                        col_cnt,
-                        ..Default::default()
-                    }
-                }
-            }
-
-            impl Table for DummyTable {
-                type Data = ();
-                type Row = list::FixedList<Self::Data, 0>;
-                type Column = list::FixedList<Self::Data, 0>;
-
-                fn set_row_capacity(&mut self, row: usize) {
-                    self.last_requested_row_capacity = Some(row);
-                }
-                fn set_column_capacity(&mut self, col: usize) {
-                    self.last_requested_column_capacity = Some(col);
-                }
-                fn row_cnt(&self) -> usize {
-                    self.row_cnt
-                }
-                fn col_cnt(&self) -> usize {
-                    self.col_cnt
-                }
-                fn get_cell(&self, _row: usize, _col: usize) -> Option<&Self::Data> {
-                    None
-                }
-                fn get_mut_cell(&mut self, _row: usize, _col: usize) -> Option<&mut Self::Data> {
-                    None
-                }
-                fn insert_cell(
-                    &mut self,
-                    _row: usize,
-                    _col: usize,
-                    _value: Self::Data,
-                ) -> Option<Self::Data> {
-                    None
-                }
-                fn remove_cell(&mut self, _row: usize, _col: usize) -> Option<Self::Data> {
-                    None
-                }
-            }
-
-            #[test]
-            fn insert_row_should_append_if_comes_after_last_row() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
-
-                table.insert_row(2, ["g", "h", "i"]);
-
-                assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-            }
-
-            #[test]
-            fn insert_row_should_shift_down_all_rows_on_or_after_specified_row() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
-
-                table.insert_row(1, ["g", "h", "i"]);
-
-                assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"], ["d", "e", "f"]]);
-            }
-
-            #[test]
-            fn insert_row_should_support_insertion_at_front() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
-
-                table.insert_row(0, ["g", "h", "i"]);
-
-                assert_eq!(table, [["g", "h", "i"], ["a", "b", "c"], ["d", "e", "f"]]);
-            }
-
-            #[test]
-            fn push_row_should_insert_at_end() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
-
-                table.push_row(["g", "h", "i"]);
-
-                assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-            }
-
-            #[test]
-            fn insert_column_should_append_if_comes_after_last_column() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
-
-                table.insert_column(3, ["g", "h"]);
-
-                assert_eq!(table, [["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
-            }
-
-            #[test]
-            fn insert_column_should_shift_right_all_columns_on_or_after_specified_column() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
-
-                table.insert_column(1, ["g", "h"]);
-
-                assert_eq!(table, [["a", "g", "b", "c"], ["d", "h", "e", "f"]]);
-            }
-
-            #[test]
-            fn insert_column_should_support_insertion_at_front() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
-
-                table.insert_column(0, ["g", "h"]);
-
-                assert_eq!(table, [["g", "a", "b", "c"], ["h", "d", "e", "f"]]);
-            }
-
-            #[test]
-            fn push_column_should_insert_at_end() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"]]);
-
-                table.push_column(["g", "h"]);
-
-                assert_eq!(table, [["a", "b", "c", "g"], ["d", "e", "f", "h"]]);
-            }
-
-            #[test]
-            fn remove_row_should_return_list_representing_removed_row() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-
-                assert_eq!(table.remove_row(1).unwrap(), ["d", "e", "f"]);
-            }
-
-            #[test]
-            fn remove_row_should_shift_rows_after_up() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-
-                table.remove_row(1);
-
-                assert_eq!(table, [["a", "b", "c"], ["g", "h", "i"]]);
-            }
-
-            #[test]
-            fn remove_row_should_support_removing_from_front() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-
-                assert_eq!(table.remove_row(0).unwrap(), ["a", "b", "c"]);
-                assert_eq!(table, [["d", "e", "f"], ["g", "h", "i"]]);
-            }
-
-            #[test]
-            fn remove_row_should_return_none_if_row_missing() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-
-                assert_eq!(table.remove_row(3), None);
-                assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-            }
-
-            #[test]
-            fn remove_row_should_set_new_row_capacity_if_valid_row_removed() {
-                let mut table = DummyTable::new(2, 0);
-                assert_eq!(table.last_requested_row_capacity, None);
-
-                // Remove out of range, so should not call
-                table.remove_row(2);
-                assert_eq!(table.last_requested_row_capacity, None);
-
-                // Remove in range, so should call
-                table.remove_row(1);
-                assert_eq!(table.last_requested_row_capacity, Some(1));
-            }
-
-            #[test]
-            fn pop_row_should_remove_last_row() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-
-                assert_eq!(table.pop_row().unwrap(), ["g", "h", "i"]);
-                assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"]]);
-            }
-
-            #[test]
-            fn remove_column_should_return_iterator_over_removed_column() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-
-                assert_eq!(table.remove_column(1).unwrap(), ["b", "e", "h"]);
-            }
-
-            #[test]
-            fn remove_column_should_shift_columns_after_left() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-
-                table.remove_column(1);
-
-                assert_eq!(table, [["a", "c"], ["d", "f"], ["g", "i"]]);
-            }
-
-            #[test]
-            fn remove_column_should_support_removing_from_front() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-
-                assert_eq!(table.remove_column(0).unwrap(), ["a", "d", "g"]);
-
-                assert_eq!(table, [["b", "c"], ["e", "f"], ["h", "i"]]);
-            }
-
-            #[test]
-            fn remove_column_should_return_none_if_column_missing() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-
-                assert_eq!(table.remove_column(3), None);
-
-                assert_eq!(table, [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-            }
-
-            #[test]
-            fn remove_column_should_set_new_column_capacity_if_valid_column_removed() {
-                let mut table = DummyTable::new(0, 2);
-                assert_eq!(table.last_requested_column_capacity, None);
-
-                // Remove out of range, so should not call
-                table.remove_column(2);
-                assert_eq!(table.last_requested_column_capacity, None);
-
-                // Remove in range, so should call
-                table.remove_column(1);
-                assert_eq!(table.last_requested_column_capacity, Some(1));
-            }
-
-            #[test]
-            fn pop_column_should_remove_last_column() {
-                let mut table = $table::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
-
-                assert_eq!(table.pop_column().unwrap(), ["c", "f", "i"]);
-
-                assert_eq!(table, [["a", "b"], ["d", "e",], ["g", "h",]]);
-            }
-        };
+    // For a couple of tests, we also provide a dummy table with no actual data
+    #[derive(Default)]
+    struct DummyTable {
+        row_cnt: usize,
+        col_cnt: usize,
+        last_requested_row_capacity: Option<usize>,
+        last_requested_column_capacity: Option<usize>,
     }
 
-    #[cfg(any(feature = "alloc", feature = "std"))]
-    mod dynamic {
-        use super::*;
-        run_tests!(DynamicTable);
+    impl DummyTable {
+        pub fn new(row_cnt: usize, col_cnt: usize) -> Self {
+            Self {
+                row_cnt,
+                col_cnt,
+                ..Default::default()
+            }
+        }
     }
 
-    mod fixed {
-        use super::*;
-        run_tests!(FixedTable);
+    impl Table for DummyTable {
+        type Data = ();
+        type Row = list::FixedList<Self::Data, 0>;
+        type Column = list::FixedList<Self::Data, 0>;
+
+        fn set_row_capacity(&mut self, row: usize) {
+            self.last_requested_row_capacity = Some(row);
+        }
+        fn set_column_capacity(&mut self, col: usize) {
+            self.last_requested_column_capacity = Some(col);
+        }
+        fn row_cnt(&self) -> usize {
+            self.row_cnt
+        }
+        fn col_cnt(&self) -> usize {
+            self.col_cnt
+        }
+        fn get_cell(&self, _row: usize, _col: usize) -> Option<&Self::Data> {
+            None
+        }
+        fn get_mut_cell(&mut self, _row: usize, _col: usize) -> Option<&mut Self::Data> {
+            None
+        }
+        fn insert_cell(
+            &mut self,
+            _row: usize,
+            _col: usize,
+            _value: Self::Data,
+        ) -> Option<Self::Data> {
+            None
+        }
+        fn remove_cell(&mut self, _row: usize, _col: usize) -> Option<Self::Data> {
+            None
+        }
     }
 
-    #[cfg(any(feature = "alloc", feature = "std"))]
-    mod fixed_row {
-        use super::*;
-        run_tests!(FixedRowTable);
+    #[test]
+    fn remove_row_should_set_new_row_capacity_if_valid_row_removed() {
+        let mut table = DummyTable::new(2, 0);
+        assert_eq!(table.last_requested_row_capacity, None);
+
+        // Remove out of range, so should not call
+        table.remove_row(2);
+        assert_eq!(table.last_requested_row_capacity, None);
+
+        // Remove in range, so should call
+        table.remove_row(1);
+        assert_eq!(table.last_requested_row_capacity, Some(1));
     }
 
-    #[cfg(any(feature = "alloc", feature = "std"))]
-    mod fixed_column {
-        use super::*;
-        run_tests!(FixedColumnTable);
+    #[test]
+    fn remove_column_should_set_new_column_capacity_if_valid_column_removed() {
+        let mut table = DummyTable::new(0, 2);
+        assert_eq!(table.last_requested_column_capacity, None);
+
+        // Remove out of range, so should not call
+        table.remove_column(2);
+        assert_eq!(table.last_requested_column_capacity, None);
+
+        // Remove in range, so should call
+        table.remove_column(1);
+        assert_eq!(table.last_requested_column_capacity, Some(1));
     }
 }
