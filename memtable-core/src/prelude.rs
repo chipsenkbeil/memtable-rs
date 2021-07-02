@@ -30,3 +30,6 @@
 //!   and shrink within a limited bounds
 //!
 pub use crate::{impls::*, iter::CellIter, list::*, Table, TableExt};
+
+#[cfg(feature = "predicates")]
+pub use crate::predicates;

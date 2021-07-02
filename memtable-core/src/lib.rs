@@ -26,6 +26,7 @@ pub use position::Position;
 /// Re-exported predicates library, which provides core functionality to
 /// filter table rows and columns
 #[cfg(feature = "predicates")]
+#[doc(inline)]
 pub use ::predicates;
 
 /// Contains relevant top-level traits, structs, and more to make use of
@@ -1083,7 +1084,7 @@ pub trait TableExt<D, T: Table<Data = D>> {
     fn filter_rows<'a, P: predicates::Predicate<iter::Row<'a, D, T>>>(
         &'a self,
         predicate: P,
-    ) -> iter::FilterRows<'a, D, T, P>;
+    ) -> iter::FilterByPredicate<iter::Row<'a, D, T>, iter::Rows<'a, D, T>, P>;
 }
 
 impl<D, T: Table<Data = D>> TableExt<D, T> for T {
@@ -1091,8 +1092,8 @@ impl<D, T: Table<Data = D>> TableExt<D, T> for T {
     fn filter_rows<'a, P: predicates::Predicate<iter::Row<'a, D, T>>>(
         &'a self,
         predicate: P,
-    ) -> iter::FilterRows<'a, D, T, P> {
-        iter::FilterRows::new(self.rows(), predicate)
+    ) -> iter::FilterByPredicate<iter::Row<'a, D, T>, iter::Rows<'a, D, T>, P> {
+        iter::FilterByPredicate::new(self.rows(), predicate)
     }
 }
 
