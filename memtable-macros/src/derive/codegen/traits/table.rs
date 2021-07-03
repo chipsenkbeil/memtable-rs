@@ -44,6 +44,14 @@ pub fn make(args: Args) -> ItemImpl {
             type Row = #row_t;
             type Column = #col_t;
 
+            fn max_row_capacity(&self) -> #root::Capacity {
+                #root::Table::max_row_capacity(&self.0)
+            }
+
+            fn max_column_capacity(&self) -> #root::Capacity {
+                #root::Table::max_column_capacity(&self.0)
+            }
+
             fn row_cnt(&self) -> ::core::primitive::usize {
                 #root::Table::row_cnt(&self.0)
             }
@@ -85,12 +93,12 @@ pub fn make(args: Args) -> ItemImpl {
                 #root::Table::remove_cell(&mut self.0, row, col)
             }
 
-            fn set_row_capacity(&mut self, capacity: ::core::primitive::usize) {
-                #root::Table::set_row_capacity(&mut self.0, capacity);
+            fn set_preferred_row_cnt(&mut self, capacity: ::core::primitive::usize) {
+                #root::Table::set_preferred_row_cnt(&mut self.0, capacity);
             }
 
-            fn set_column_capacity(&mut self, capacity: ::core::primitive::usize) {
-                #root::Table::set_column_capacity(&mut self.0, capacity);
+            fn set_preferred_col_cnt(&mut self, capacity: ::core::primitive::usize) {
+                #root::Table::set_preferred_col_cnt(&mut self.0, capacity);
             }
         }
     }

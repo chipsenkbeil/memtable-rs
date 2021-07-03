@@ -1,4 +1,4 @@
-use crate::{list::*, Table};
+use crate::{list::*, Capacity, Table};
 use ::sled::Tree;
 use serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, sync::Mutex};
@@ -40,8 +40,8 @@ where
 
         // Second, create our table instance and explicitly set the capacities
         let mut table = new_table(row_cnt, col_cnt);
-        table.set_row_capacity(row_cnt);
-        table.set_column_capacity(col_cnt);
+        table.set_preferred_row_cnt(row_cnt);
+        table.set_preferred_col_cnt(col_cnt);
 
         // Third, create our instance
         let mut this = Self {
@@ -65,8 +65,8 @@ where
             let row_cnt = row_cnt.unwrap_or_default();
             let col_cnt = col_cnt.unwrap_or_default();
 
-            self.table.set_row_capacity(row_cnt);
-            self.table.set_column_capacity(col_cnt);
+            self.table.set_preferred_row_cnt(row_cnt);
+            self.table.set_preferred_col_cnt(col_cnt);
             (row_cnt, col_cnt)
         } else {
             (self.row_cnt(), self.col_cnt())
@@ -117,8 +117,8 @@ where
         use crate::iter::CellIter;
 
         if rewrite {
-            utils::set_row_cnt(&self.tree, self.table.row_cnt())?;
-            utils::set_col_cnt(&self.tree, self.table.col_cnt())?;
+            utils::set_preferred_row_cnt(&self.tree, self.table.row_cnt())?;
+            utils::set_preferred_col_cnt(&self.tree, self.table.col_cnt())?;
 
             for (pos, cell) in self.table.cells().zip_with_position() {
                 let _ = utils::insert_cell(&self.tree, pos.row, pos.col, cell)?;
@@ -140,6 +140,14 @@ where
     type Data = D;
     type Row = R;
     type Column = C;
+
+    fn max_row_capacity(&self) -> Capacity {
+        self.table.max_row_capacity()
+    }
+
+    fn max_column_capacity(&self) -> Capacity {
+        self.table.max_column_capacity()
+    }
 
     fn row_cnt(&self) -> usize {
         self.table.row_cnt()
@@ -197,22 +205,22 @@ where
 
     /// Will set the row capacity of the inner table and replicate the
     /// metadata in the [`sled::Tree`]
-    fn set_row_capacity(&mut self, capacity: usize) {
-        if let Err(x) = utils::set_row_cnt(&self.tree, capacity) {
+    fn set_preferred_row_cnt(&mut self, capacity: usize) {
+        if let Err(x) = utils::set_preferred_row_cnt(&self.tree, capacity) {
             self.push_error(x);
         }
 
-        self.table.set_row_capacity(capacity);
+        self.table.set_preferred_row_cnt(capacity);
     }
 
     /// Will set the column capacity of the inner table and replicate the
     /// metadata in the [`sled::Tree`]
-    fn set_column_capacity(&mut self, capacity: usize) {
-        if let Err(x) = utils::set_col_cnt(&self.tree, capacity) {
+    fn set_preferred_col_cnt(&mut self, capacity: usize) {
+        if let Err(x) = utils::set_preferred_col_cnt(&self.tree, capacity) {
             self.push_error(x);
         }
 
-        self.table.set_column_capacity(capacity);
+        self.table.set_preferred_col_cnt(capacity);
     }
 }
 
@@ -315,12 +323,12 @@ mod utils {
         Ok(())
     }
 
-    pub fn set_row_cnt(tree: &Tree, row: usize) -> Result<()> {
+    pub fn set_preferred_row_cnt(tree: &Tree, row: usize) -> Result<()> {
         tree.insert(ROW_CNT_KEY, value_to_bytes(&row)?)?;
         Ok(())
     }
 
-    pub fn set_col_cnt(tree: &Tree, col: usize) -> Result<()> {
+    pub fn set_preferred_col_cnt(tree: &Tree, col: usize) -> Result<()> {
         tree.insert(COL_CNT_KEY, value_to_bytes(&col)?)?;
         Ok(())
     }

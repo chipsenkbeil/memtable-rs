@@ -1,4 +1,4 @@
-use crate::{iter::*, list::*, Position, Table};
+use crate::{iter::*, list::*, Capacity, Position, Table};
 use core::{
     cmp,
     iter::FromIterator,
@@ -78,6 +78,14 @@ impl<T> Table for DynamicTable<T> {
     type Row = DynamicList<Self::Data>;
     type Column = DynamicList<Self::Data>;
 
+    fn max_row_capacity(&self) -> Capacity {
+        Capacity::Unlimited
+    }
+
+    fn max_column_capacity(&self) -> Capacity {
+        Capacity::Unlimited
+    }
+
     fn row_cnt(&self) -> usize {
         self.row_cnt
     }
@@ -116,16 +124,16 @@ impl<T> Table for DynamicTable<T> {
     ///
     /// Note that this does **not** remove any cells from the table in their
     /// old positions. To do that, call [`Self::truncate`].
-    fn set_row_capacity(&mut self, capacity: usize) {
-        self.row_cnt = capacity;
+    fn set_preferred_row_cnt(&mut self, cnt: usize) {
+        self.row_cnt = cnt;
     }
 
     /// Will adjust the internal column count tracker to the specified capacity
     ///
     /// Note that this does **not** remove any cells from the table in their
     /// old positions. To do that, call [`Self::truncate`].
-    fn set_column_capacity(&mut self, capacity: usize) {
-        self.col_cnt = capacity;
+    fn set_preferred_col_cnt(&mut self, cnt: usize) {
+        self.col_cnt = cnt;
     }
 }
 
@@ -388,8 +396,8 @@ mod tests {
         );
 
         // Trucate from 3x3 to 2x2
-        table.set_row_capacity(table.row_cnt() - 1);
-        table.set_column_capacity(table.col_cnt() - 1);
+        table.set_preferred_row_cnt(table.row_cnt() - 1);
+        table.set_preferred_col_cnt(table.col_cnt() - 1);
         table.truncate();
         assert_eq!(
             table

@@ -8,6 +8,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(missing_docs, missing_debug_implementations)]
 
+mod capacity;
+
+#[doc(inline)]
+pub use capacity::Capacity;
+
 /// Contains extensions to the library based on extra features
 pub mod exts;
 
@@ -45,6 +50,12 @@ pub trait Table: Sized {
 
     /// The type of structure to hold a column of data
     type Column: list::List<Item = Self::Data>;
+
+    /// Returns the maximum row capacity of the table
+    fn max_row_capacity(&self) -> Capacity;
+
+    /// Returns the maximum column capacity of the table
+    fn max_column_capacity(&self) -> Capacity;
 
     /// Returns the total rows contained in the table
     ///
@@ -119,14 +130,14 @@ pub trait Table: Sized {
     /// This is a preference, not an absolute, and is up to each table to
     /// implement if desired; otherwise, this does nothing by default
     #[allow(unused_variables)]
-    fn set_row_capacity(&mut self, capacity: usize) {}
+    fn set_preferred_row_cnt(&mut self, cnt: usize) {}
 
     /// Sets the preferred capacity of the table when it comes to total columns
     ///
     /// This is a preference, not an absolute, and is up to each table to
     /// implement if desired; otherwise, this does nothing by default
     #[allow(unused_variables)]
-    fn set_column_capacity(&mut self, capacity: usize) {}
+    fn set_preferred_col_cnt(&mut self, cnt: usize) {}
 
     /// Returns reference to the cell found at the specified row and column
     ///
@@ -858,7 +869,7 @@ pub trait Table: Sized {
         // Flag to table that the preferred row capacity is now one less
         // if the row we removed was within capacity
         if row < row_cnt {
-            self.set_row_capacity(row_cnt - 1);
+            self.set_preferred_row_cnt(row_cnt - 1);
         }
 
         Some(tmp)
@@ -1043,7 +1054,7 @@ pub trait Table: Sized {
         // Flag to table that the preferred column capacity is now one less
         // if the column we removed was within capacity
         if col < col_cnt {
-            self.set_column_capacity(col_cnt - 1);
+            self.set_preferred_col_cnt(col_cnt - 1);
         }
 
         Some(tmp)
@@ -1102,10 +1113,16 @@ mod tests {
         type Row = list::FixedList<Self::Data, 0>;
         type Column = list::FixedList<Self::Data, 0>;
 
-        fn set_row_capacity(&mut self, row: usize) {
+        fn max_row_capacity(&self) -> Capacity {
+            Capacity::Unlimited
+        }
+        fn max_column_capacity(&self) -> Capacity {
+            Capacity::Unlimited
+        }
+        fn set_preferred_row_cnt(&mut self, row: usize) {
             self.last_requested_row_capacity = Some(row);
         }
-        fn set_column_capacity(&mut self, col: usize) {
+        fn set_preferred_col_cnt(&mut self, col: usize) {
             self.last_requested_column_capacity = Some(col);
         }
         fn row_cnt(&self) -> usize {

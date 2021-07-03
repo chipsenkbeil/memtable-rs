@@ -11,6 +11,8 @@
 - New `sled` feature that provides a new table wrapper `SledTable` that uses
   [sled](https://github.com/spacejam/sled) as a replication and persistence
   layer for an inmemory table
+- `Capacity` indicator to `Table` trait via new `max_row_capacity`
+  and `max_column_capacity` methods
 - New macro attribute `mode` at the table level that supports using a different
   table to power the typed version generated. Three types are `dynamic`
   (default), `fixed_column` where the max column is set to number of fields
@@ -69,6 +71,8 @@
     2. Change `replace_cell_{...}` to just `replace_{...}`
     3. Flip `column_{...}` and `into_column_{...}` to `{...}_column` and
        `into_{...}_column`
+- Renamed `Table` trait's `set_row_capacity` and `set_column_capacity` to
+  `set_preferred_row_cnt` and `set_preferred_col_cnt`
 
 ### Fixed
 

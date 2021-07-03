@@ -1,4 +1,4 @@
-use crate::{iter::*, list::*, utils, Position, Table};
+use crate::{iter::*, list::*, utils, Capacity, Position, Table};
 use core::{
     cmp,
     iter::FromIterator,
@@ -83,6 +83,14 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
     type Row = DynamicList<Self::Data>;
     type Column = FixedList<Self::Data, ROW>;
 
+    fn max_row_capacity(&self) -> Capacity {
+        Capacity::Limited(ROW)
+    }
+
+    fn max_column_capacity(&self) -> Capacity {
+        Capacity::Unlimited
+    }
+
     fn row_cnt(&self) -> usize {
         self.row_cnt
     }
@@ -165,8 +173,8 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
     ///
     /// If you want to remove the cells that are no longer within capacity,
     /// call [`Self::truncate`], which will reset them to their default value.
-    fn set_row_capacity(&mut self, capacity: usize) {
-        self.row_cnt = cmp::min(capacity, ROW);
+    fn set_preferred_row_cnt(&mut self, cnt: usize) {
+        self.row_cnt = cmp::min(cnt, ROW);
     }
 
     /// Will adjust the internal column count tracker to the specified capacity
@@ -177,8 +185,8 @@ impl<T: Default, const ROW: usize> Table for FixedRowTable<T, ROW> {
     ///
     /// If you want to remove the cells that are no longer within capacity,
     /// call [`Self::truncate`], which will reset them to their default value.
-    fn set_column_capacity(&mut self, capacity: usize) {
-        self.col_cnt = capacity;
+    fn set_preferred_col_cnt(&mut self, cnt: usize) {
+        self.col_cnt = cnt;
     }
 }
 
@@ -315,12 +323,12 @@ mod tests {
     fn row_cnt_should_be_adjustable_up_to_const_max() {
         let mut table: FixedRowTable<usize, 0> = FixedRowTable::new();
         assert_eq!(table.row_cnt(), 0);
-        table.set_row_capacity(1);
+        table.set_preferred_row_cnt(1);
         assert_eq!(table.row_cnt(), 0);
 
         let mut table: FixedRowTable<usize, 4> = FixedRowTable::new();
         assert_eq!(table.row_cnt(), 0);
-        table.set_row_capacity(5);
+        table.set_preferred_row_cnt(5);
         assert_eq!(table.row_cnt(), 4);
     }
 
@@ -328,12 +336,12 @@ mod tests {
     fn col_cnt_should_be_adjustable() {
         let mut table: FixedRowTable<usize, 0> = FixedRowTable::new();
         assert_eq!(table.col_cnt(), 0);
-        table.set_column_capacity(999);
+        table.set_preferred_col_cnt(999);
         assert_eq!(table.col_cnt(), 999);
 
         let mut table: FixedRowTable<usize, 4> = FixedRowTable::new();
         assert_eq!(table.col_cnt(), 0);
-        table.set_column_capacity(999);
+        table.set_preferred_col_cnt(999);
         assert_eq!(table.col_cnt(), 999);
     }
 
@@ -356,16 +364,16 @@ mod tests {
         assert_eq!(table.col_cnt(), 2);
 
         // If we change the capacity to be smaller, cell should respect that
-        table.set_row_capacity(1);
-        table.set_column_capacity(1);
+        table.set_preferred_row_cnt(1);
+        table.set_preferred_col_cnt(1);
         assert_eq!(table.cell(0, 0).as_deref(), Some(&"a"));
         assert_eq!(table.cell(0, 1).as_deref(), None);
         assert_eq!(table.cell(1, 0).as_deref(), None);
         assert_eq!(table.cell(1, 1).as_deref(), None);
 
         // Capacity changes don't actually overwrite anything
-        table.set_row_capacity(2);
-        table.set_column_capacity(2);
+        table.set_preferred_row_cnt(2);
+        table.set_preferred_col_cnt(2);
         assert_eq!(table.cell(0, 0).as_deref(), Some(&"a"));
         assert_eq!(table.cell(0, 1).as_deref(), Some(&"b"));
         assert_eq!(table.cell(1, 0).as_deref(), Some(&"c"));
@@ -394,8 +402,8 @@ mod tests {
         assert_eq!(table.col_cnt(), 2);
 
         // If we change the capacity to be smaller, mut_cell should respect that
-        table.set_row_capacity(1);
-        table.set_column_capacity(1);
+        table.set_preferred_row_cnt(1);
+        table.set_preferred_col_cnt(1);
         assert!(table.mut_cell(0, 0).is_some());
         assert!(table.mut_cell(0, 1).is_none());
         assert!(table.mut_cell(1, 0).is_none());
@@ -456,8 +464,8 @@ mod tests {
     #[test]
     fn remove_cell_should_respect_virtual_boundaries() {
         let mut table = FixedRowTable::from([vec![1, 2], vec![3, 4]]);
-        table.set_row_capacity(0);
-        table.set_column_capacity(0);
+        table.set_preferred_row_cnt(0);
+        table.set_preferred_col_cnt(0);
 
         assert_eq!(table.row_cnt(), 0);
         assert_eq!(table.col_cnt(), 0);
@@ -474,8 +482,8 @@ mod tests {
     #[should_panic]
     fn index_by_row_and_column_should_respect_virtual_boundaries() {
         let mut table = FixedRowTable::from([vec![1, 2, 3]]);
-        table.set_row_capacity(0);
-        table.set_column_capacity(0);
+        table.set_preferred_row_cnt(0);
+        table.set_preferred_col_cnt(0);
 
         // Will cause panic because of virtual boundary reached
         let _ = table[(0, 0)];
@@ -503,8 +511,8 @@ mod tests {
     #[should_panic]
     fn index_mut_by_row_and_column_should_respect_virtual_boundaries() {
         let mut table = FixedRowTable::from([vec![1, 2, 3]]);
-        table.set_row_capacity(0);
-        table.set_column_capacity(0);
+        table.set_preferred_row_cnt(0);
+        table.set_preferred_col_cnt(0);
 
         // Will cause panic because of virtual boundary reached
         table[(0, 0)] = 999;
@@ -522,7 +530,7 @@ mod tests {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]);
 
         // Shrink our capacity from the starting maximum so we can add a row
-        table.set_row_capacity(2);
+        table.set_preferred_row_cnt(2);
 
         table.insert_row(2, ["x", "y", "z"].iter().copied());
 
@@ -561,7 +569,7 @@ mod tests {
         let mut table = FixedRowTable::from([["a", "b", "c"], ["d", "e", "f"]]);
 
         // Shrink our capacity from the starting maximum so we can add a row
-        table.set_row_capacity(1);
+        table.set_preferred_row_cnt(1);
 
         table.push_row(["g", "h", "i"].iter().copied());
 
