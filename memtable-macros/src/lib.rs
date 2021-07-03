@@ -4,7 +4,7 @@
 //!
 //! Check out full documentation at
 //! [memtable](https://github.com/chipsenkbeil/memtable-rs).
-#![forbid(unsafe_code)]
+#![forbid(missing_docs, unsafe_code)]
 
 mod derive;
 mod utils;

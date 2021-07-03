@@ -6,6 +6,7 @@
 //! [memtable](https://github.com/chipsenkbeil/memtable-rs).
 #![cfg_attr(feature = "docs", feature(doc_cfg))]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![forbid(missing_docs, missing_debug_implementations)]
 
 /// Contains extensions to the library based on extra features
 pub mod exts;
@@ -16,6 +17,7 @@ pub mod iter;
 mod impls;
 pub use impls::*;
 
+/// Contains lists and associated traits for storing items
 pub mod list;
 
 mod position;
@@ -29,7 +31,7 @@ pub mod prelude;
 
 mod utils;
 
-// Re-export alloc as std in the case where we don't have std
+/// Re-export alloc as std in the case where we don't have std
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 extern crate alloc as std;
 

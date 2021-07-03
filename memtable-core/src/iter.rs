@@ -135,6 +135,8 @@ pub struct IntoRow<D, T: Table<Data = D>> {
 }
 
 impl<D, T: Table<Data = D>> IntoRow<D, T> {
+    /// Creates a new iterator that consumes a table and returns the row at
+    /// the specified index
     pub fn new(table: T, row: usize) -> Self {
         Self { table, row, col: 0 }
     }
@@ -277,6 +279,8 @@ pub struct IntoColumn<D, T: Table<Data = D>> {
 }
 
 impl<D, T: Table<Data = D>> IntoColumn<D, T> {
+    /// Creates a new iterator that consumes a table and returns the column at
+    /// the specified index
     pub fn new(table: T, col: usize) -> Self {
         Self { table, row: 0, col }
     }
@@ -330,6 +334,8 @@ pub struct Cells<'a, D, T: Table<Data = D>> {
 }
 
 impl<'a, D, T: Table<Data = D>> Cells<'a, D, T> {
+    /// Creates a new iterator that takes a table reference and returns
+    /// references to the cells within
     pub fn new(table: &'a T) -> Self {
         Self {
             table,
@@ -399,6 +405,7 @@ pub struct IntoCells<D, T: Table<Data = D>> {
 }
 
 impl<D, T: Table<Data = D>> IntoCells<D, T> {
+    /// Creates a new iterator that consumes a table and returns each cell within
     pub fn new(table: T) -> Self {
         Self {
             table,

@@ -1,5 +1,3 @@
-#![allow(clippy::needless_range_loop)]
-
 use serde::ser;
 
 /// Workaround for https://github.com/serde-rs/serde/issues/1937
@@ -13,6 +11,8 @@ where
 {
     use ser::SerializeTuple;
     let mut tup = serializer.serialize_tuple(N)?;
+
+    #[allow(clippy::needless_range_loop)]
     for i in 0..N {
         tup.serialize_element(&value[i])?;
     }

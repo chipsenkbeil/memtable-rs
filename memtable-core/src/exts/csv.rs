@@ -5,6 +5,7 @@ use std::{fs::File, io, path::Path};
 /// Represents ability to load data from a CSV
 #[cfg_attr(feature = "docs", doc(cfg(csv)))]
 pub trait FromCsv {
+    /// Represents the type to produce from CSV data
     type Output;
 
     /// Loads a table from some instance of the [`io::Read`] trait

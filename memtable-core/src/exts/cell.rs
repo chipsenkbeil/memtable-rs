@@ -3,19 +3,25 @@ use paste::paste;
 macro_rules! impl_cell {
     ($name:ident $($variant:ident)+) => {
         paste! {
+            /// Represents a data stucture that can hold a variety of different data types
             #[cfg_attr(feature = "docs", doc(cfg(cell)))]
             #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
             #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
             pub enum $name<$($variant),+> {
-                $($variant($variant)),+
+                $(
+                    #[doc = "Represents container for `" $variant "` generic type"]
+                    $variant($variant)
+                ),+
             }
 
             impl<$($variant),+> $name<$($variant),+> {
                 $(
+                    #[doc = "Returns true if `" $name "` is the `" $variant "` variant"]
                     pub fn [<is_ $variant:snake>](&self) -> bool {
                         matches!(self, Self::$variant(_))
                     }
 
+                    #[doc = "Attempts to cast to a reference of the `" $variant "` variant"]
                     pub fn [<as_ $variant:snake>](&self) -> Option<&$variant> {
                         match self {
                             Self::$variant(x) => Some(x),
@@ -23,6 +29,7 @@ macro_rules! impl_cell {
                         }
                     }
 
+                    #[doc = "Attempts to cast to a mutable reference of the `" $variant "` variant"]
                     pub fn [<as_mut_ $variant:snake>](&mut self) -> Option<&mut $variant> {
                         match self {
                             Self::$variant(x) => Some(x),
@@ -30,6 +37,7 @@ macro_rules! impl_cell {
                         }
                     }
 
+                    #[doc = "Attempts to consume and convert into the `" $variant "` variant"]
                     pub fn [<into_ $variant:snake>](self) -> Option<$variant> {
                         match self {
                             Self::$variant(x) => Some(x),

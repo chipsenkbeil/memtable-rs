@@ -184,6 +184,7 @@
 //! [memtable_msrv_lnk]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
 //! [memtable_macros_msrv_lnk]: https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
 #![cfg_attr(not(feature = "std"), no_std)]
+#![forbid(missing_docs, missing_debug_implementations)]
 
 pub use memtable_core::*;
 

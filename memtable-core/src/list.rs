@@ -10,7 +10,10 @@ use core::{
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde-1", derive(serde::Serialize, serde::Deserialize))]
 pub enum Capacity {
+    /// Represents a capacity that has a maximum bounds
     Limited(usize),
+
+    /// Represents a capacity with no bounds
     Unlimited,
 }
 
@@ -36,6 +39,7 @@ impl Capacity {
 
 /// Represents a generic list of items
 pub trait List: Sized {
+    /// Represents the type of item within the list
     type Item;
 
     /// Creates a new list with **up to** N elements, each created using
