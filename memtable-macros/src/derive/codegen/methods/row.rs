@@ -1,32 +1,16 @@
 use super::{utils, TableColumn};
-use darling::ast::Style;
-use quote::format_ident;
 use syn::{parse_quote, Ident, ItemFn, Path, Type};
 
 pub struct Args<'a> {
     pub root: &'a Path,
-    pub style: Style,
     pub columns: &'a [&'a TableColumn],
 }
 
 pub fn make(args: Args) -> ItemFn {
-    let Args {
-        root,
-        style,
-        columns,
-    } = args;
+    let Args { root, columns } = args;
 
     let variant_tys = utils::make_variant_types(columns);
-    let get_cell_fns: Vec<Ident> = utils::make_snake_idents(columns)
-        .iter()
-        .map(|name| {
-            format_ident!(
-                "get_cell{}{}",
-                if style.is_tuple() { "" } else { "_" },
-                name
-            )
-        })
-        .collect();
+    let cell_fns: Vec<Ident> = utils::make_snake_idents(columns);
 
     // (type1, type2, ...)
     let option_inner_ty: Type = parse_quote!((#(&#variant_tys),*));
@@ -47,7 +31,7 @@ pub fn make(args: Args) -> ItemFn {
             if row < #root::Table::row_cnt(&self.0) {
                 ::core::option::Option::Some(
                     (#(
-                        self.#get_cell_fns(row).expect(#bug_msg)
+                        self.#cell_fns(row).expect(#bug_msg)
                     ),*)
                 )
             } else {

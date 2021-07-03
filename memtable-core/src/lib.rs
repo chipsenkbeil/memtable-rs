@@ -142,7 +142,7 @@ pub trait Table: Sized {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
-    /// assert!(table.get_cell(0, 3).is_none());
+    /// assert!(table.cell(0, 3).is_none());
     /// # }
     /// ```
     ///
@@ -156,10 +156,10 @@ pub trait Table: Sized {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
-    /// assert_eq!(table.get_cell(0, 2), Some(&3));
+    /// assert_eq!(table.cell(0, 2), Some(&3));
     /// # }
     /// ```
-    fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data>;
+    fn cell(&self, row: usize, col: usize) -> Option<&Self::Data>;
 
     /// Returns mut reference to the cell found at the specified row and column
     ///
@@ -175,7 +175,7 @@ pub trait Table: Sized {
     /// # use memtable_core::prelude::*;
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
-    /// assert!(table.get_mut_cell(0, 3).is_none());
+    /// assert!(table.mut_cell(0, 3).is_none());
     /// # }
     /// ```
     ///
@@ -190,11 +190,11 @@ pub trait Table: Sized {
     /// let mut table = DynamicTable::new();
     /// table.push_row(vec![1, 2, 3]);
     ///
-    /// *table.get_mut_cell(0, 2).unwrap() = 999;
-    /// assert_eq!(table.get_cell(0, 2), Some(&999));
+    /// *table.mut_cell(0, 2).unwrap() = 999;
+    /// assert_eq!(table.cell(0, 2), Some(&999));
     /// # }
     /// ```
-    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data>;
+    fn mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data>;
 
     /// Replaces the given value into the cell of the table at the specified
     /// row and column, returning the previous value contained in the cell
@@ -213,7 +213,7 @@ pub trait Table: Sized {
     /// table.push_row(vec![1, 2, 3]);
     ///
     /// assert!(table.insert_cell(0, 3, 999).is_none());
-    /// assert_eq!(table.get_cell(0, 3), Some(&999));
+    /// assert_eq!(table.cell(0, 3), Some(&999));
     /// # }
     /// ```
     ///
@@ -229,7 +229,7 @@ pub trait Table: Sized {
     /// table.push_row(vec![1, 2, 3]);
     ///
     /// assert_eq!(table.insert_cell(0, 2, 999), Some(3));
-    /// assert_eq!(table.get_cell(0, 2), Some(&999));
+    /// assert_eq!(table.cell(0, 2), Some(&999));
     /// # }
     /// ```
     fn insert_cell(&mut self, row: usize, col: usize, value: Self::Data) -> Option<Self::Data>;
@@ -700,7 +700,7 @@ pub trait Table: Sized {
     /// # }
     /// ```
     fn has_cell(&self, row: usize, col: usize) -> bool {
-        self.get_cell(row, col).is_some()
+        self.cell(row, col).is_some()
     }
 
     /// Inserts a new row into the table at the given position, shifting down
@@ -1114,10 +1114,10 @@ mod tests {
         fn col_cnt(&self) -> usize {
             self.col_cnt
         }
-        fn get_cell(&self, _row: usize, _col: usize) -> Option<&Self::Data> {
+        fn cell(&self, _row: usize, _col: usize) -> Option<&Self::Data> {
             None
         }
-        fn get_mut_cell(&mut self, _row: usize, _col: usize) -> Option<&mut Self::Data> {
+        fn mut_cell(&mut self, _row: usize, _col: usize) -> Option<&mut Self::Data> {
             None
         }
         fn insert_cell(

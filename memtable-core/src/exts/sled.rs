@@ -149,12 +149,12 @@ where
         self.table.col_cnt()
     }
 
-    fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
-        self.table.get_cell(row, col)
+    fn cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
+        self.table.cell(row, col)
     }
 
-    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
-        self.table.get_mut_cell(row, col)
+    fn mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
+        self.table.mut_cell(row, col)
     }
 
     /// Will insert the data into the cell, replicate it using the [`sled::Tree`],

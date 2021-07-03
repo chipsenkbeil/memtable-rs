@@ -84,7 +84,7 @@ impl<T: Default, const ROW: usize, const COL: usize> Table for FixedTable<T, ROW
         self.col_cnt
     }
 
-    fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
+    fn cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
         // Limit access to the virtual space that has been assigned
         if row < self.row_cnt && col < self.col_cnt {
             Some(&self.cells[row][col])
@@ -93,7 +93,7 @@ impl<T: Default, const ROW: usize, const COL: usize> Table for FixedTable<T, ROW
         }
     }
 
-    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
+    fn mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
         // Limit access to the virtual space that has been assigned
         if row < self.row_cnt && col < self.col_cnt {
             Some(&mut self.cells[row][col])
@@ -145,7 +145,7 @@ impl<T: Default, const ROW: usize, const COL: usize> Table for FixedTable<T, ROW
     ///
     /// Note that this does **not** remove any cells from the table in their
     /// old positions. Instead, this updates the virtual space within the
-    /// table that is made available for methods like [`Table::get_cell`].
+    /// table that is made available for methods like [`Table::cell`].
     ///
     /// If you want to remove the cells that are no longer within capacity,
     /// call [`Self::truncate`], which will reset them to their default value.
@@ -158,7 +158,7 @@ impl<T: Default, const ROW: usize, const COL: usize> Table for FixedTable<T, ROW
     ///
     /// Note that this does **not** remove any cells from the table in their
     /// old positions. Instead, this updates the virtual space within the
-    /// table that is made available for methods like [`Table::get_cell`].
+    /// table that is made available for methods like [`Table::cell`].
     ///
     /// If you want to remove the cells that are no longer within capacity,
     /// call [`Self::truncate`], which will reset them to their default value.
@@ -264,8 +264,7 @@ impl<T: Default, const ROW: usize, const COL: usize> Index<(usize, usize)>
     /// Indexes into a table by a specific row and column, returning a
     /// reference to the cell if it exists, otherwise panicking
     fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
-        self.get_cell(row, col)
-            .expect("Row/Column index out of range")
+        self.cell(row, col).expect("Row/Column index out of range")
     }
 }
 
@@ -275,7 +274,7 @@ impl<T: Default, const ROW: usize, const COL: usize> IndexMut<(usize, usize)>
     /// Indexes into a table by a specific row and column, returning a mutable
     /// reference to the cell if it exists, otherwise panicking
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
-        self.get_mut_cell(row, col)
+        self.mut_cell(row, col)
             .expect("Row/Column index out of range")
     }
 }
@@ -318,68 +317,68 @@ mod tests {
     }
 
     #[test]
-    fn get_cell_should_return_ref_to_cell_at_location() {
+    fn cell_should_return_ref_to_cell_at_location() {
         // Sets capacity to that of the 2D array provided
         let table = FixedTable::from([["a", "b"], ["c", "d"]]);
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"a"));
-        assert_eq!(table.get_cell(0, 1).as_deref(), Some(&"b"));
-        assert_eq!(table.get_cell(1, 0).as_deref(), Some(&"c"));
-        assert_eq!(table.get_cell(1, 1).as_deref(), Some(&"d"));
-        assert_eq!(table.get_cell(1, 2), None);
+        assert_eq!(table.cell(0, 0).as_deref(), Some(&"a"));
+        assert_eq!(table.cell(0, 1).as_deref(), Some(&"b"));
+        assert_eq!(table.cell(1, 0).as_deref(), Some(&"c"));
+        assert_eq!(table.cell(1, 1).as_deref(), Some(&"d"));
+        assert_eq!(table.cell(1, 2), None);
     }
 
     #[test]
-    fn get_cell_should_respect_virtual_boundaries() {
+    fn cell_should_respect_virtual_boundaries() {
         // Sets capacity to that of the 2D array provided
         let mut table = FixedTable::from([["a", "b"], ["c", "d"]]);
         assert_eq!(table.row_cnt(), 2);
         assert_eq!(table.col_cnt(), 2);
 
-        // If we change the capacity to be smaller, get_cell should respect that
+        // If we change the capacity to be smaller, cell should respect that
         table.set_row_capacity(1);
         table.set_column_capacity(1);
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"a"));
-        assert_eq!(table.get_cell(0, 1).as_deref(), None);
-        assert_eq!(table.get_cell(1, 0).as_deref(), None);
-        assert_eq!(table.get_cell(1, 1).as_deref(), None);
+        assert_eq!(table.cell(0, 0).as_deref(), Some(&"a"));
+        assert_eq!(table.cell(0, 1).as_deref(), None);
+        assert_eq!(table.cell(1, 0).as_deref(), None);
+        assert_eq!(table.cell(1, 1).as_deref(), None);
 
         // Capacity changes don't actually overwrite anything
         table.set_row_capacity(2);
         table.set_column_capacity(2);
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"a"));
-        assert_eq!(table.get_cell(0, 1).as_deref(), Some(&"b"));
-        assert_eq!(table.get_cell(1, 0).as_deref(), Some(&"c"));
-        assert_eq!(table.get_cell(1, 1).as_deref(), Some(&"d"));
+        assert_eq!(table.cell(0, 0).as_deref(), Some(&"a"));
+        assert_eq!(table.cell(0, 1).as_deref(), Some(&"b"));
+        assert_eq!(table.cell(1, 0).as_deref(), Some(&"c"));
+        assert_eq!(table.cell(1, 1).as_deref(), Some(&"d"));
     }
 
     #[test]
-    fn get_mut_cell_should_return_mut_ref_to_cell_at_location() {
+    fn mut_cell_should_return_mut_ref_to_cell_at_location() {
         let mut table = FixedTable::from([["a", "b"], ["c", "d"]]);
-        *table.get_mut_cell(0, 0).unwrap() = "e";
-        *table.get_mut_cell(0, 1).unwrap() = "f";
-        *table.get_mut_cell(1, 0).unwrap() = "g";
-        *table.get_mut_cell(1, 1).unwrap() = "h";
-        assert_eq!(table.get_mut_cell(2, 0), None);
+        *table.mut_cell(0, 0).unwrap() = "e";
+        *table.mut_cell(0, 1).unwrap() = "f";
+        *table.mut_cell(1, 0).unwrap() = "g";
+        *table.mut_cell(1, 1).unwrap() = "h";
+        assert_eq!(table.mut_cell(2, 0), None);
 
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"e"));
-        assert_eq!(table.get_cell(0, 1).as_deref(), Some(&"f"));
-        assert_eq!(table.get_cell(1, 0).as_deref(), Some(&"g"));
-        assert_eq!(table.get_cell(1, 1).as_deref(), Some(&"h"));
+        assert_eq!(table.cell(0, 0).as_deref(), Some(&"e"));
+        assert_eq!(table.cell(0, 1).as_deref(), Some(&"f"));
+        assert_eq!(table.cell(1, 0).as_deref(), Some(&"g"));
+        assert_eq!(table.cell(1, 1).as_deref(), Some(&"h"));
     }
 
     #[test]
-    fn get_mut_cell_should_respect_virtual_boundaries() {
+    fn mut_cell_should_respect_virtual_boundaries() {
         let mut table = FixedTable::from([["a", "b"], ["c", "d"]]);
         assert_eq!(table.row_cnt(), 2);
         assert_eq!(table.col_cnt(), 2);
 
-        // If we change the capacity to be smaller, get_mut_cell should respect that
+        // If we change the capacity to be smaller, mut_cell should respect that
         table.set_row_capacity(1);
         table.set_column_capacity(1);
-        assert!(table.get_mut_cell(0, 0).is_some());
-        assert!(table.get_mut_cell(0, 1).is_none());
-        assert!(table.get_mut_cell(1, 0).is_none());
-        assert!(table.get_mut_cell(1, 1).is_none());
+        assert!(table.mut_cell(0, 0).is_some());
+        assert!(table.mut_cell(0, 1).is_none());
+        assert!(table.mut_cell(1, 0).is_none());
+        assert!(table.mut_cell(1, 1).is_none());
     }
 
     #[test]
@@ -388,7 +387,7 @@ mod tests {
 
         assert_eq!(table.insert_cell(0, 0, 123), None);
         assert_eq!(table.insert_cell(0, 0, 999), Some(123));
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&999))
+        assert_eq!(table.cell(0, 0).as_deref(), Some(&999))
     }
 
     #[test]

@@ -101,24 +101,24 @@ fn should_support_renaming_columns() {
     });
 
     // Check get_{} output
-    assert_eq!(table.get_cell_number(0), Some(&123));
-    assert_eq!(table.get_cell_field2(0), Some(&true));
+    assert_eq!(table.number(0), Some(&123));
+    assert_eq!(table.field2(0), Some(&true));
 
     // Check get_mut_{} output
-    *table.get_mut_cell_number(0).unwrap() = 234;
-    *table.get_mut_cell_field2(0).unwrap() = false;
+    *table.mut_number(0).unwrap() = 234;
+    *table.mut_field2(0).unwrap() = false;
 
     // Check {}_column output
-    assert_eq!(table.column_number().next(), Some(&234));
-    assert_eq!(table.column_field2().next(), Some(&false));
+    assert_eq!(table.number_column().next(), Some(&234));
+    assert_eq!(table.field2_column().next(), Some(&false));
 
     // Check replace_{} output
-    assert_eq!(table.replace_cell_number(0, 123), Some(234));
-    assert_eq!(table.replace_cell_field2(0, true), Some(false));
+    assert_eq!(table.replace_number(0, 123), Some(234));
+    assert_eq!(table.replace_field2(0, true), Some(false));
 
     // Check into_{}_column output
-    assert!(MyStructTable::new().into_column_number().next().is_none());
-    assert!(MyStructTable::new().into_column_field2().next().is_none());
+    assert!(MyStructTable::new().into_number_column().next().is_none());
+    assert!(MyStructTable::new().into_field2_column().next().is_none());
 }
 
 #[test]

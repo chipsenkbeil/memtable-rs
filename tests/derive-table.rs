@@ -31,7 +31,7 @@ fn derive_table() {
     assert_eq!(*age, 51);
 
     // Tables of course provide a variety of other methods to inspect data
-    let mut names_iter = table.column_name();
+    let mut names_iter = table.name_column();
     assert_eq!(names_iter.next(), Some(&"Fred Flintstone"));
     assert_eq!(names_iter.next(), Some(&"Wilma Flintstone"));
 }

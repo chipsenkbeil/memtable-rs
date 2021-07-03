@@ -128,7 +128,7 @@
 //!
 //! #[derive(Table)]
 //! struct User {
-//!     name: String,
+//!     name: &'static str,
 //!     age: u8,
 //! }
 //!
@@ -138,23 +138,23 @@
 //!
 //! // Inserting is straightforward as a User is considered a singular row
 //! table.push_row(User {
-//!     name: "Fred Flintstone".to_string(),
+//!     name: "Fred Flintstone",
 //!     age: 51,
 //! });
 //!
 //! // You can also pass in a tuple of the fields in order of declaration
-//! table.push_row(("Wilma Flintstone".to_string(), 47));
+//! table.push_row(("Wilma Flintstone", 47));
 //!
 //! // Retrieval by row will provide the fields by ref as a tuple
 //! let (name, age) = table.row(0).unwrap();
-//! assert_eq!(name, "Fred Flintstone");
+//! assert_eq!(*name, "Fred Flintstone");
 //! assert_eq!(*age, 51);
 //!
 //! // Tables of course provide a variety of other methods to inspect data
-//! assert_eq!(
-//!     table.column_name().collect::<Vec<&String>>(),
-//!     vec!["Fred Flintstone", "Wilma Flintstone"],
-//! );
+//! let mut names = table.name_column();
+//! assert_eq!(names.next(), Some(&"Fred Flintstone"));
+//! assert_eq!(names.next(), Some(&"Wilma Flintstone"));
+//! assert_eq!(names.next(), None);
 //! # }
 //! ```
 //!

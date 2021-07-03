@@ -101,7 +101,7 @@ impl<'a, D: 'a, T: Table<Data = D>> Iterator for Row<'a, D, T> {
     type Item = &'a D;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let cell = self.table.get_cell(self.row, self.col);
+        let cell = self.table.cell(self.row, self.col);
         if cell.is_some() {
             self.col += 1;
         }
@@ -245,7 +245,7 @@ impl<'a, D: 'a, T: Table<Data = D>> Iterator for Column<'a, D, T> {
     type Item = &'a D;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let cell = self.table.get_cell(self.row, self.col);
+        let cell = self.table.cell(self.row, self.col);
         if cell.is_some() {
             self.row += 1;
         }
@@ -349,7 +349,7 @@ impl<'a, D: 'a, T: Table<Data = D>> Iterator for Cells<'a, D, T> {
     type Item = &'a D;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let cell = self.table.get_cell(self.row, self.col);
+        let cell = self.table.cell(self.row, self.col);
         let col_cnt = self.table.col_cnt();
         let row_cnt = self.table.row_cnt();
 

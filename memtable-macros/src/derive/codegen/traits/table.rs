@@ -52,20 +52,20 @@ pub fn make(args: Args) -> ItemImpl {
                 #root::Table::col_cnt(&self.0)
             }
 
-            fn get_cell(
+            fn cell(
                 &self,
                 row: ::core::primitive::usize,
                 col: ::core::primitive::usize,
             ) -> ::core::option::Option<&Self::Data> {
-                #root::Table::get_cell(&self.0, row, col)
+                #root::Table::cell(&self.0, row, col)
             }
 
-            fn get_mut_cell(
+            fn mut_cell(
                 &mut self,
                 row: ::core::primitive::usize,
                 col: ::core::primitive::usize,
             ) -> ::core::option::Option<&mut Self::Data> {
-                #root::Table::get_mut_cell(&mut self.0, row, col)
+                #root::Table::mut_cell(&mut self.0, row, col)
             }
 
             fn insert_cell(

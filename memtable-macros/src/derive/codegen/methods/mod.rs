@@ -1,10 +1,10 @@
+pub mod cell;
 pub mod column;
 pub mod column_by_name;
-pub mod get_cell;
-pub mod get_mut_cell;
 pub mod insert_row;
 pub mod into_column;
 pub mod into_column_by_name;
+pub mod mut_cell;
 pub mod new;
 pub mod pop_row;
 pub mod push_row;
@@ -18,7 +18,7 @@ use darling::ast::Style;
 use quote::format_ident;
 use syn::{Ident, ItemFn, Path, Type};
 
-pub fn make_get_cell_fns(
+pub fn make_cell_fns(
     root: &Path,
     style: Style,
     table_data_name: &Ident,
@@ -27,7 +27,7 @@ pub fn make_get_cell_fns(
     make_many(
         style,
         columns,
-        |name| format_ident!("get_cell{}{}", u(style), name),
+        |name| format_ident!("{}", name),
         |args| {
             let ManyArgs {
                 method_name,
@@ -37,7 +37,7 @@ pub fn make_get_cell_fns(
                 ..
             } = args;
 
-            get_cell::make(get_cell::Args {
+            cell::make(cell::Args {
                 root,
                 idx,
                 method_name: &method_name,
@@ -49,7 +49,7 @@ pub fn make_get_cell_fns(
     )
 }
 
-pub fn make_get_mut_cell_fns(
+pub fn make_mut_cell_fns(
     root: &Path,
     style: Style,
     table_data_name: &Ident,
@@ -58,7 +58,7 @@ pub fn make_get_mut_cell_fns(
     make_many(
         style,
         columns,
-        |name| format_ident!("get_mut_cell{}{}", u(style), name),
+        |name| format_ident!("mut{}{}", u(style), name),
         |args| {
             let ManyArgs {
                 method_name,
@@ -68,7 +68,7 @@ pub fn make_get_mut_cell_fns(
                 ..
             } = args;
 
-            get_mut_cell::make(get_mut_cell::Args {
+            mut_cell::make(mut_cell::Args {
                 root,
                 idx,
                 method_name: &method_name,
@@ -89,7 +89,7 @@ pub fn make_column_fns(
     make_many(
         style,
         columns,
-        |name| format_ident!("column{}{}", u(style), name),
+        |name| format_ident!("{}_column", name),
         |args| {
             let ManyArgs {
                 method_name,
@@ -120,7 +120,7 @@ pub fn make_into_column_fns(
     make_many(
         style,
         columns,
-        |name| format_ident!("into_column{}{}", u(style), name),
+        |name| format_ident!("into{}{}_column", u(style), name),
         |args| {
             let ManyArgs {
                 method_name,
@@ -151,7 +151,7 @@ pub fn make_replace_cell_fns(
     make_many(
         style,
         columns,
-        |name| format_ident!("replace_cell{}{}", u(style), name),
+        |name| format_ident!("replace{}{}", u(style), name),
         |args| {
             let ManyArgs {
                 method_name,

@@ -63,6 +63,12 @@
   shrink, do not return "uninitialized data" when accessing out of bounds
   (return `None` instead of `Some(Default::default()))`, and properly truncate
   values by filling in with a default when requested
+- Renamed `Table` trait's `get_cell` and `get_mut_cell` to `cell` and `mut_cell`
+- Renamed `Table` derived methods
+    1. Remove `get_cell_` and `get_mut_cell_` from in front of column accessors
+    2. Change `replace_cell_{...}` to just `replace_{...}`
+    3. Flip `column_{...}` and `into_column_{...}` to `{...}_column` and
+       `into_{...}_column`
 
 ### Fixed
 

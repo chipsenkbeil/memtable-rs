@@ -253,12 +253,12 @@ fn should_support_retrieving_typed_columns() {
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    let mut column = table.column_0();
+    let mut column = table._0_column();
     assert_eq!(column.next(), Some(&false));
     assert_eq!(column.next(), Some(&true));
     assert!(column.next().is_none());
 
-    let mut column = table.column_1();
+    let mut column = table._1_column();
     assert_eq!(column.next(), Some(&123));
     assert_eq!(column.next(), Some(&999));
     assert!(column.next().is_none());
@@ -270,7 +270,7 @@ fn should_support_converting_into_typed_columns() {
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    let mut column = table.into_column_0();
+    let mut column = table.into_0_column();
     assert_eq!(column.next(), Some(false));
     assert_eq!(column.next(), Some(true));
     assert!(column.next().is_none());
@@ -279,7 +279,7 @@ fn should_support_converting_into_typed_columns() {
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    let mut column = table.into_column_1();
+    let mut column = table.into_1_column();
     assert_eq!(column.next(), Some(123));
     assert_eq!(column.next(), Some(999));
     assert!(column.next().is_none());
@@ -291,28 +291,28 @@ fn should_support_replacing_individual_cells() {
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    assert_eq!(table.replace_cell_0(0, true), Some(false));
+    assert_eq!(table.replace_0(0, true), Some(false));
     {
-        let mut column = table.column_0();
+        let mut column = table._0_column();
         assert_eq!(column.next(), Some(&true));
         assert_eq!(column.next(), Some(&true));
         assert!(column.next().is_none());
     }
 
-    assert_eq!(table.replace_cell_1(1, 0usize), Some(999));
+    assert_eq!(table.replace_1(1, 0usize), Some(999));
     {
-        let mut column = table.column_1();
+        let mut column = table._1_column();
         assert_eq!(column.next(), Some(&123));
         assert_eq!(column.next(), Some(&0));
         assert!(column.next().is_none());
     }
 
-    assert_eq!(table.replace_cell_1(2, 999usize), None);
+    assert_eq!(table.replace_1(2, 999usize), None);
     {
         assert_eq!(table.row_cnt(), 2);
         assert_eq!(table.col_cnt(), 2);
 
-        let mut column = table.column_1();
+        let mut column = table._1_column();
         assert_eq!(column.next(), Some(&123));
         assert_eq!(column.next(), Some(&0));
         assert!(column.next().is_none());
@@ -325,13 +325,13 @@ fn should_support_retrieving_individual_cells() {
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    assert_eq!(table.get_cell_0(0), Some(&false));
-    assert_eq!(table.get_cell_0(1), Some(&true));
-    assert_eq!(table.get_cell_0(2), None);
+    assert_eq!(table._0(0), Some(&false));
+    assert_eq!(table._0(1), Some(&true));
+    assert_eq!(table._0(2), None);
 
-    assert_eq!(table.get_cell_1(0), Some(&123));
-    assert_eq!(table.get_cell_1(1), Some(&999));
-    assert_eq!(table.get_cell_1(2), None);
+    assert_eq!(table._1(0), Some(&123));
+    assert_eq!(table._1(1), Some(&999));
+    assert_eq!(table._1(2), None);
 }
 
 #[test]
@@ -340,21 +340,21 @@ fn should_support_mutating_individual_cells() {
     table.push_row((false, 123));
     table.push_row((true, 999));
 
-    *table.get_mut_cell_0(0).unwrap() = true;
-    *table.get_mut_cell_0(1).unwrap() = false;
-    assert!(table.get_mut_cell_0(2).is_none());
+    *table.mut_0(0).unwrap() = true;
+    *table.mut_0(1).unwrap() = false;
+    assert!(table.mut_0(2).is_none());
 
-    *table.get_mut_cell_1(0).unwrap() = 999;
-    *table.get_mut_cell_1(1).unwrap() = 123;
-    assert!(table.get_mut_cell_1(2).is_none());
+    *table.mut_1(0).unwrap() = 999;
+    *table.mut_1(1).unwrap() = 123;
+    assert!(table.mut_1(2).is_none());
 
-    assert_eq!(table.get_cell_0(0), Some(&true));
-    assert_eq!(table.get_cell_0(1), Some(&false));
-    assert_eq!(table.get_cell_0(2), None);
+    assert_eq!(table._0(0), Some(&true));
+    assert_eq!(table._0(1), Some(&false));
+    assert_eq!(table._0(2), None);
 
-    assert_eq!(table.get_cell_1(0), Some(&999));
-    assert_eq!(table.get_cell_1(1), Some(&123));
-    assert_eq!(table.get_cell_1(2), None);
+    assert_eq!(table._1(0), Some(&999));
+    assert_eq!(table._1(1), Some(&123));
+    assert_eq!(table._1(2), None);
 }
 
 #[test]

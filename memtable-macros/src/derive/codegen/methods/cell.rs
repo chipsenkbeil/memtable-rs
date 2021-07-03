@@ -24,7 +24,7 @@ pub fn make(args: Args) -> ItemFn {
             &self,
             row: ::core::primitive::usize,
         ) -> ::core::option::Option<&#variant_ty> {
-            #root::Table::get_cell(&self.0, row, #idx)
+            #root::Table::cell(&self.0, row, #idx)
                 .and_then(#table_data_name::#as_variant)
         }
     }

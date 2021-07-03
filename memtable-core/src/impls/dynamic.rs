@@ -86,11 +86,11 @@ impl<T> Table for DynamicTable<T> {
         self.col_cnt
     }
 
-    fn get_cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
+    fn cell(&self, row: usize, col: usize) -> Option<&Self::Data> {
         self.cells.get(&Position { row, col })
     }
 
-    fn get_mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
+    fn mut_cell(&mut self, row: usize, col: usize) -> Option<&mut Self::Data> {
         self.cells.get_mut(&Position { row, col })
     }
 
@@ -224,8 +224,7 @@ impl<T> Index<(usize, usize)> for DynamicTable<T> {
     /// Indexes into a table by a specific row and column, returning a
     /// reference to the cell if it exists, otherwise panicking
     fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
-        self.get_cell(row, col)
-            .expect("Row/Column index out of range")
+        self.cell(row, col).expect("Row/Column index out of range")
     }
 }
 
@@ -233,7 +232,7 @@ impl<T> IndexMut<(usize, usize)> for DynamicTable<T> {
     /// Indexes into a table by a specific row and column, returning a mutable
     /// reference to the cell if it exists, otherwise panicking
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
-        self.get_mut_cell(row, col)
+        self.mut_cell(row, col)
             .expect("Row/Column index out of range")
     }
 }
@@ -278,30 +277,30 @@ mod tests {
     }
 
     #[test]
-    fn get_cell_should_return_ref_to_cell_at_location() {
+    fn cell_should_return_ref_to_cell_at_location() {
         let table = DynamicTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (1, 0, "c"),
             (1, 1, "d"),
         ]));
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"a"));
-        assert_eq!(table.get_cell(0, 1).as_deref(), Some(&"b"));
-        assert_eq!(table.get_cell(1, 0).as_deref(), Some(&"c"));
-        assert_eq!(table.get_cell(1, 1).as_deref(), Some(&"d"));
-        assert_eq!(table.get_cell(1, 2), None);
+        assert_eq!(table.cell(0, 0).as_deref(), Some(&"a"));
+        assert_eq!(table.cell(0, 1).as_deref(), Some(&"b"));
+        assert_eq!(table.cell(1, 0).as_deref(), Some(&"c"));
+        assert_eq!(table.cell(1, 1).as_deref(), Some(&"d"));
+        assert_eq!(table.cell(1, 2), None);
     }
 
     #[test]
-    fn get_mut_cell_should_return_mut_ref_to_cell_at_location() {
+    fn mut_cell_should_return_mut_ref_to_cell_at_location() {
         let mut table = DynamicTable::from(make_hashmap(vec![
             (0, 0, "a"),
             (0, 1, "b"),
             (1, 0, "c"),
             (1, 1, "d"),
         ]));
-        *table.get_mut_cell(0, 0).unwrap() = "e";
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"e"));
+        *table.mut_cell(0, 0).unwrap() = "e";
+        assert_eq!(table.cell(0, 0).as_deref(), Some(&"e"));
     }
 
     #[test]
@@ -342,7 +341,7 @@ mod tests {
 
         assert!(table.insert_cell(0, 0, "test").is_none());
         assert_eq!(table.insert_cell(0, 0, "other"), Some("test"));
-        assert_eq!(table.get_cell(0, 0).as_deref(), Some(&"other"))
+        assert_eq!(table.cell(0, 0).as_deref(), Some(&"other"))
     }
 
     #[test]

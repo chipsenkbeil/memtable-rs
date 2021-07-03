@@ -43,7 +43,7 @@ pub fn make(args: Args) -> ItemImpl {
             fn try_from(table: #inner_table_ty) -> ::core::result::Result<Self, Self::Error> {
                 for row in 0..#root::Table::row_cnt(&table) {
                     #(
-                        let cell = #root::Table::get_cell(&table, row, #idx);
+                        let cell = #root::Table::cell(&table, row, #idx);
 
                         if cell.is_none() {
                             return ::core::result::Result::Err(
