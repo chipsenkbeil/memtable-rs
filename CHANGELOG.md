@@ -4,6 +4,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.2.0] - 2021-07-03
+
 ### Added
 
 - `no_std` support via the `alloc` and `std` features (involved refactoring
